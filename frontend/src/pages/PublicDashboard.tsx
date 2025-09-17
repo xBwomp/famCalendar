@@ -1,23 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, MapPin, RefreshCw, Settings } from 'lucide-react';
 import { eventApi, calendarApi, CalendarEvent, Calendar as CalendarType } from '../api';
+import CalendarView, { ViewType } from '../components/CalendarView';
 
 const PublicDashboard: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
+  const [currentView, setCurrentView] = useState<ViewType>('week');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [showSimpleView, setShowSimpleView] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Fetch selected calendars and today's events
+      // Fetch selected calendars and events for the next 30 days
+      const now = new Date();
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      
       const [calendarsResponse, eventsResponse] = await Promise.all([
         calendarApi.getSelected(),
-        eventApi.getToday(),
+        eventApi.getAll({
+          start_date: now.toISOString(),
+          end_date: thirtyDaysFromNow.toISOString(),
+        }),
       ]);
 
       if (calendarsResponse.success && calendarsResponse.data) {
@@ -85,17 +94,41 @@ const PublicDashboard: React.FC = () => {
               <Calendar className="w-8 h-8 text-blue-600" />
               <h1 className="text-3xl font-bold text-gray-900">Family Calendar</h1>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </p>
-              <button
-                onClick={fetchData}
-                className="mt-1 inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-500">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <button
+                    onClick={fetchData}
+                    className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Refresh
+                  </button>
+                  <button
+                    onClick={() => setShowSimpleView(!showSimpleView)}
+                    className={`inline-flex items-center px-3 py-1 border rounded-md text-sm transition-colors ${
+                      showSimpleView
+                        ? 'border-blue-300 text-blue-700 bg-blue-50'
+                        : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    {showSimpleView ? 'Calendar View' : 'Simple View'}
+                  </button>
+                </div>
+              </div>
+              
+              <a
+                href="/admin"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
               >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Refresh
-              </button>
+                <Settings className="w-4 h-4 mr-1" />
+                Admin
+              </a>
             </div>
           </div>
         </div>
@@ -135,71 +168,95 @@ const PublicDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Today's Events */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Today's Events - {formatDate(new Date().toISOString())}
-          </h2>
 
-          {events.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No events today</h3>
-              <p className="text-gray-500">Enjoy your free day!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {events.map((event) => (
-                <div
-                  key={event.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: event.calendar_color || '#3B82F6' }}
-                        />
-                        <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
-                      </div>
-                      
-                      {event.description && (
-                        <p className="text-gray-600 mb-3">{event.description}</p>
-                      )}
-                      
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            {event.all_day
-                              ? 'All day'
-                              : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`
-                            }
-                          </span>
+        {/* Calendar Views */}
+        {showSimpleView ? (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Today's Events - {formatDate(new Date().toISOString())}
+            </h2>
+
+            {events.filter(event => {
+              const today = new Date().toISOString().split('T')[0];
+              const eventStart = new Date(event.start_time).toISOString().split('T')[0];
+              const eventEnd = new Date(event.end_time).toISOString().split('T')[0];
+              return eventStart <= today && eventEnd >= today;
+            }).length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No events today</h3>
+                <p className="text-gray-500">Enjoy your free day!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {events.filter(event => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const eventStart = new Date(event.start_time).toISOString().split('T')[0];
+                  const eventEnd = new Date(event.end_time).toISOString().split('T')[0];
+                  return eventStart <= today && eventEnd >= today;
+                }).map((event) => (
+                  <div
+                    key={event.id}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: event.calendar_color || '#3B82F6' }}
+                          />
+                          <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
                         </div>
                         
-                        {event.location && (
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{event.location}</span>
-                          </div>
+                        {event.description && (
+                          <p className="text-gray-600 mb-3">{event.description}</p>
                         )}
                         
-                        {event.calendar_name && (
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>{event.calendar_name}</span>
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {event.all_day
+                                ? 'All day'
+                                : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`
+                              }
+                            </span>
                           </div>
-                        )}
+                          
+                          {event.location && (
+                            <div className="flex items-center space-x-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{event.location}</span>
+                            </div>
+                          )}
+                          
+                          {event.calendar_name && (
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-4 h-4" />
+                              <span>{event.calendar_name}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden" style={{ height: '600px' }}>
+            <CalendarView
+              events={events}
+              view={currentView}
+              onViewChange={setCurrentView}
+              startHour={7}
+              endHour={20}
+              daysToShow={5}
+            />
+          </div>
+        )}
       </main>
     </div>
   );
