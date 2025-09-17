@@ -66,7 +66,7 @@ passport.deserializeUser((id: string, done) => {
     }
     
     if (!row) {
-      return done(null, null);
+      return done(null, undefined);
     }
 
     // Reconstruct user object from stored settings
