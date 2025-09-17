@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, ToggleLeft, ToggleRight, User, LogOut, RefreshCw, Sync, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Settings, Calendar, ToggleLeft, ToggleRight, User, LogOut, RefreshCw, FolderSync as Sync, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { calendarApi, Calendar as CalendarType, seedApi, syncApi } from '../api';
 
