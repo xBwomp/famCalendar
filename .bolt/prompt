@@ -1,0 +1,111 @@
+For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.
+
+By default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.
+
+Use icons from lucide-react for logos.
+
+**Feature Specification: Local Calendar Dashboard for Raspberry Pi**
+
+---
+
+### Overview
+
+Build a local calendar dashboard application designed to run on a Raspberry Pi. The application provides a read-only, easy-to-view calendar display accessible to anyone on the local network, with all sensitive configuration and Google authentication secured in an admin panel.
+
+---
+
+### Goals
+
+- Deliver a robust, reliable, and LAN-accessible calendar display for home environment.
+- Ensure security of credentials and Google authentication.
+- Guarantee offline reliability by always serving events from a local database.
+- Provide a kiosk-friendly, responsive UI optimized for a 10 inch tablet display.
+
+---
+
+### Non-Goals
+
+- No public internet access to the dashboard.
+- No event editing or creation from the dashboard.
+- No user accounts or authentication for general viewing.
+- Extra features like event tagging, multi-admin, and custom themes are out of scope for this phase.
+
+---
+
+### Functional Requirements
+
+#### Public Calendar Dashboard
+
+- Accessible to anyone on the local network (no login required).
+- Displays events from selected Google Calendars.
+- Supports Day (configurable 5-day or custom N-day grid), Week, and Month views.
+- Supports Hours (configurable start and stop times with default of 0700-2000)
+- Responsive, minimal, and kiosk-friendly UI for full-screen display.
+
+#### Admin Panel
+
+- Protected by Google OAuth2 authentication.
+- Allows admins to:
+    - Connect the app to their Google account.
+    - Fetch and list available Google Calendars.
+    - Select calendars to display publicly.
+    - Set display preferences (e.g., number of days and hours in default view).
+    - Manually trigger Google Calendar sync.
+    - Manage sync settings which may require caching credentials
+
+#### Data Handling
+
+- Uses Google Calendar API to fetch events from selected calendars.
+- Stores all calendar data in a local SQLite3 database.
+- The dashboard always reads from SQLite3, never directly from Google API.
+- Supports manual and scheduled syncs via the admin panel.
+
+---
+
+### Non-Functional Requirements
+
+- Backend: Node.js with TypeScript.
+- Frontend: React with TypeScript.
+- Persistent store: SQLite3.
+- Must run reliably on a Raspberry Pi.
+- All sensitive configuration and credentials are accessible only via the admin panel.
+- Offline display must function seamlessly if the internet is unavailable.
+
+---
+
+### Security
+
+- Only the admin panel requires authentication (Google OAuth2).
+- All public dashboard access is unrestricted on the LAN.
+- Credentials and sensitive data are never exposed to public endpoints.
+- Server credentials such as the Google OAuth key will be kept in a .env file
+
+---
+
+### User Stories
+
+1. **As a LAN user**, I can view the calendar dashboard without logging in.
+2. **As an admin**, I can securely log in via Google OAuth2 to configure the app.
+3. **As an admin**, I can select which Google Calendars are displayed.
+4. **As an admin**, I can set how many days are shown in the default view.
+5. **As an admin**, I can trigger a manual sync with Google Calendar.
+6. **As a LAN user**, I can switch between Day, Week, and Month views.
+
+---
+
+### Acceptance Criteria
+
+- The dashboard is accessible from any device on the LAN without authentication.
+- The admin panel is only accessible after Google OAuth2 login.
+- Only selected calendars are displayed on the dashboard.
+- The dashboard displays events from the local SQLite3 database, not directly from Google.
+- The UI is responsive and optimized for kiosk/full-screen use.
+- Offline operation is seamless for public viewing.
+
+---
+
+### Out of Scope
+
+- Event creation, editing, or deletion from the dashboard.
+- Multi-admin support.
+- Event tagging and custom themes (future phases).
