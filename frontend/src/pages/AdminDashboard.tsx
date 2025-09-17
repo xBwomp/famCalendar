@@ -1,0 +1,278 @@
+import React, { useState, useEffect } from 'react';
+import { Settings, Calendar, ToggleLeft, ToggleRight, User, LogOut, RefreshCw } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { calendarApi, Calendar as CalendarType, seedApi } from '../api';
+
+const AdminDashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [calendars, setCalendars] = useState<CalendarType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchCalendars = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await calendarApi.getAll();
+      if (response.success && response.data) {
+        setCalendars(response.data);
+      } else {
+        setError(response.error || 'Failed to fetch calendars');
+      }
+    } catch (err) {
+      setError('Failed to fetch calendars');
+      console.error('Error fetching calendars:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleCalendar = async (calendarId: string) => {
+    setActionLoading(calendarId);
+    
+    try {
+      const response = await calendarApi.toggle(calendarId);
+      if (response.success) {
+        // Update local state
+        setCalendars(prev => 
+          prev.map(cal => 
+            cal.id === calendarId 
+              ? { ...cal, selected: !cal.selected }
+              : cal
+          )
+        );
+      } else {
+        setError(response.error || 'Failed to toggle calendar');
+      }
+    } catch (err) {
+      setError('Failed to toggle calendar');
+      console.error('Error toggling calendar:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const createSampleData = async () => {
+    setActionLoading('sample-data');
+    
+    try {
+      const response = await seedApi.createSampleData();
+      if (response.success) {
+        await fetchCalendars(); // Refresh the list
+      } else {
+        setError(response.error || 'Failed to create sample data');
+      }
+    } catch (err) {
+      setError('Failed to create sample data');
+      console.error('Error creating sample data:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const clearData = async () => {
+    if (!confirm('Are you sure you want to clear all calendar data? This cannot be undone.')) {
+      return;
+    }
+    
+    setActionLoading('clear-data');
+    
+    try {
+      const response = await seedApi.clearData();
+      if (response.success) {
+        await fetchCalendars(); // Refresh the list
+      } else {
+        setError(response.error || 'Failed to clear data');
+      }
+    } catch (err) {
+      setError('Failed to clear data');
+      console.error('Error clearing data:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchCalendars();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Settings className="w-8 h-8 text-blue-600" />
+              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {user && (
+                <div className="flex items-center space-x-3">
+                  {user.picture && (
+                    <img
+                      src={user.picture}
+                      alt={user.name}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  )}
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                </div>
+              )}
+              
+              <button
+                onClick={logout}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={createSampleData}
+              disabled={actionLoading === 'sample-data'}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {actionLoading === 'sample-data' ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Calendar className="w-4 h-4 mr-2" />
+              )}
+              Create Sample Data
+            </button>
+            
+            <button
+              onClick={clearData}
+              disabled={actionLoading === 'clear-data'}
+              className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {actionLoading === 'clear-data' ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Calendar className="w-4 h-4 mr-2" />
+              )}
+              Clear All Data
+            </button>
+            
+            <button
+              onClick={fetchCalendars}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Calendar Management */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Calendar Management</h2>
+          
+          {calendars.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No calendars found</h3>
+              <p className="text-gray-500 mb-4">Create some sample data to get started.</p>
+              <button
+                onClick={createSampleData}
+                disabled={actionLoading === 'sample-data'}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {actionLoading === 'sample-data' ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Calendar className="w-4 h-4 mr-2" />
+                )}
+                Create Sample Data
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Calendars ({calendars.length})
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Toggle calendars on/off to control what appears on the public dashboard
+                </p>
+              </div>
+              
+              <div className="divide-y divide-gray-200">
+                {calendars.map((calendar) => (
+                  <div key={calendar.id} className="px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: calendar.color }}
+                      />
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900">{calendar.name}</h4>
+                        {calendar.description && (
+                          <p className="text-sm text-gray-500">{calendar.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => toggleCalendar(calendar.id)}
+                      disabled={actionLoading === calendar.id}
+                      className="flex items-center space-x-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {actionLoading === calendar.id ? (
+                        <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
+                      ) : calendar.selected ? (
+                        <>
+                          <ToggleRight className="w-5 h-5 text-green-600" />
+                          <span className="text-green-600">Visible</span>
+                        </>
+                      ) : (
+                        <>
+                          <ToggleLeft className="w-5 h-5 text-gray-400" />
+                          <span className="text-gray-500">Hidden</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;
