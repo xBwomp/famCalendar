@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, ToggleLeft, ToggleRight, User, LogOut, RefreshCw } from 'lucide-react';
+import { Settings, Calendar, ToggleLeft, ToggleRight, User, LogOut, RefreshCw, Sync, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { calendarApi, Calendar as CalendarType, seedApi } from '../api';
+import { calendarApi, Calendar as CalendarType, seedApi, syncApi } from '../api';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -9,6 +9,7 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
   const fetchCalendars = async () => {
     setLoading(true);
@@ -94,6 +95,96 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const testGoogleConnection = async () => {
+    setActionLoading('test-connection');
+    setSyncStatus(null);
+    
+    try {
+      const response = await syncApi.testConnection();
+      setSyncStatus({
+        success: response.success,
+        message: response.message || (response.success ? 'Connection successful' : 'Connection failed')
+      });
+    } catch (err) {
+      setSyncStatus({
+        success: false,
+        message: 'Failed to test connection'
+      });
+      console.error('Error testing connection:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const syncCalendars = async () => {
+    setActionLoading('sync-calendars');
+    setSyncStatus(null);
+    
+    try {
+      const response = await syncApi.syncCalendars();
+      setSyncStatus({
+        success: response.success,
+        message: response.message || 'Calendars synced successfully'
+      });
+      if (response.success) {
+        await fetchCalendars(); // Refresh the calendar list
+      }
+    } catch (err) {
+      setSyncStatus({
+        success: false,
+        message: 'Failed to sync calendars'
+      });
+      console.error('Error syncing calendars:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const syncEvents = async () => {
+    setActionLoading('sync-events');
+    setSyncStatus(null);
+    
+    try {
+      const response = await syncApi.syncEvents();
+      setSyncStatus({
+        success: response.success,
+        message: response.message || 'Events synced successfully'
+      });
+    } catch (err) {
+      setSyncStatus({
+        success: false,
+        message: 'Failed to sync events'
+      });
+      console.error('Error syncing events:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const fullSync = async () => {
+    setActionLoading('full-sync');
+    setSyncStatus(null);
+    
+    try {
+      const response = await syncApi.fullSync();
+      setSyncStatus({
+        success: response.success,
+        message: response.message || 'Full sync completed successfully'
+      });
+      if (response.success) {
+        await fetchCalendars(); // Refresh the calendar list
+      }
+    } catch (err) {
+      setSyncStatus({
+        success: false,
+        message: 'Failed to perform full sync'
+      });
+      console.error('Error during full sync:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   useEffect(() => {
     fetchCalendars();
   }, []);
@@ -156,9 +247,91 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Sync Status */}
+        {syncStatus && (
+          <div className={`mb-6 p-4 rounded-md border ${
+            syncStatus.success 
+              ? 'bg-green-50 border-green-200 text-green-800' 
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            <div className="flex items-center">
+              {syncStatus.success ? (
+                <CheckCircle className="w-5 h-5 mr-2" />
+              ) : (
+                <XCircle className="w-5 h-5 mr-2" />
+              )}
+              <p>{syncStatus.message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Google Calendar Sync */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Google Calendar Sync</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <p className="text-sm text-gray-600 mb-4">
+              Sync your Google Calendar data to display events on the public dashboard.
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <button
+                onClick={testGoogleConnection}
+                disabled={actionLoading === 'test-connection'}
+                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {actionLoading === 'test-connection' ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Test Connection
+              </button>
+              
+              <button
+                onClick={syncCalendars}
+                disabled={actionLoading === 'sync-calendars'}
+                className="inline-flex items-center justify-center px-4 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {actionLoading === 'sync-calendars' ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Calendar className="w-4 h-4 mr-2" />
+                )}
+                Sync Calendars
+              </button>
+              
+              <button
+                onClick={syncEvents}
+                disabled={actionLoading === 'sync-events'}
+                className="inline-flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {actionLoading === 'sync-events' ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sync className="w-4 h-4 mr-2" />
+                )}
+                Sync Events
+              </button>
+              
+              <button
+                onClick={fullSync}
+                disabled={actionLoading === 'full-sync'}
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {actionLoading === 'full-sync' ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sync className="w-4 h-4 mr-2" />
+                )}
+                Full Sync
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Development Tools</h2>
           <div className="flex flex-wrap gap-3">
             <button
               onClick={createSampleData}

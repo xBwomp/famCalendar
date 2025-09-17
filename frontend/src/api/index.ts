@@ -112,6 +112,18 @@ export const adminApi = {
     }),
 };
 
+// Sync API
+export const syncApi = {
+  testConnection: () => apiRequest('/api/sync/test-connection', { method: 'POST' }),
+  syncCalendars: () => apiRequest('/api/sync/calendars', { method: 'POST' }),
+  syncEvents: () => apiRequest('/api/sync/events', { method: 'POST' }),
+  fullSync: () => apiRequest('/api/sync/full', { method: 'POST' }),
+  getLogs: (limit?: number) => {
+    const params = limit ? `?limit=${limit}` : '';
+    return apiRequest(`/api/sync/logs${params}`);
+  },
+};
+
 // Seed API (for testing)
 export const seedApi = {
   createSampleData: () => apiRequest('/api/seed/sample-data', { method: 'POST' }),

@@ -10,6 +10,7 @@ import eventRoutes from './routes/eventRoutes';
 import seedRoutes from './routes/seedRoutes';
 import authRoutes from './routes/authRoutes';
 import adminRoutes from './routes/adminRoutes';
+import syncRoutes from './routes/syncRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +43,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/calendars', calendarRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/sync', syncRoutes);
 
 // Serve static files from frontend build
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
@@ -76,6 +78,7 @@ async function startServer() {
       console.log(`📅 Calendars API: http://localhost:${PORT}/api/calendars`);
       console.log(`📆 Events API: http://localhost:${PORT}/api/events`);
       console.log(`🌱 Seed API: http://localhost:${PORT}/api/seed`);
+      console.log(`🔄 Sync API: http://localhost:${PORT}/api/sync`);
       console.log(`⚙️  Admin API: http://localhost:${PORT}/api/admin`);
     });
   } catch (error) {
