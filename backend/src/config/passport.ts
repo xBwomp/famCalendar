@@ -18,6 +18,7 @@ passport.use(new GoogleStrategy({
       accessToken,
       refreshToken
     };
+console.log('GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_ID, clientID, clientSecret');
 
     // Store tokens in admin_settings for later use
     const storeToken = (key: string, value: string) => {

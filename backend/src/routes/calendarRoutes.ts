@@ -5,25 +5,14 @@ import { Calendar, ApiResponse } from '../../../shared/types';
 const router = Router();
 
 // GET /api/calendars - Retrieve all calendars
-router.get('/', (req: Request, res: Response) => {
-  const query = 'SELECT * FROM calendars ORDER BY name ASC';
-  
+router.get('/', (req: Request, res: Response): void => {
+  const query = 'SELECT * FROM calendars ORDER BY name';
   db.all(query, [], (err, rows: Calendar[]) => {
     if (err) {
-      console.error('Error fetching calendars:', err);
-      const response: ApiResponse = {
-        success: false,
-        error: 'Failed to fetch calendars'
-      };
-      return res.status(500).json(response);
+      res.status(500).json({ success: false, message: 'DB error' });
+      return;
     }
-
-    const response: ApiResponse<Calendar[]> = {
-      success: true,
-      data: rows,
-      message: `Retrieved ${rows.length} calendars`
-    };
-    res.json(response);
+    res.json({ success: true, data: rows });
   });
 });
 

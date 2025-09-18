@@ -4,6 +4,10 @@ import { Calendar, CalendarEvent } from '../../../shared/types';
 
 export class GoogleCalendarService {
   private oauth2Client: any;
+  // Promise that resolves when credentials have been loaded/set at least once
+  public ready: Promise<void>;
+  private _readyResolve!: () => void;
+  private _readyReject!: (err?: any) => void;
 
   constructor() {
     this.oauth2Client = new google.auth.OAuth2(
@@ -11,6 +15,21 @@ export class GoogleCalendarService {
       process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI
     );
+
+    // create the ready promise and start background waiting for credentials
+    this.ready = new Promise<void>((resolve, reject) => {
+      this._readyResolve = resolve;
+      this._readyReject = reject;
+    });
+
+    // Start polling for credentials in the background (non-blocking constructor)
+    this.waitForCredentials().then(() => {
+      // resolved inside waitForCredentials when setCredentials succeeds
+    }).catch(err => {
+      console.error('❌ Error while waiting for Google credentials:', err);
+      // reject the ready promise so awaiters know something went wrong
+      this._readyReject(err);
+    });
   }
 
   // Set access token from stored credentials
@@ -44,6 +63,66 @@ export class GoogleCalendarService {
         });
       });
     });
+  }
+
+  // New: poll DB until credentials exist, then set them and resolve ready
+  async waitForCredentials(intervalMs = 5000, timeoutMs?: number): Promise<void> {
+    const start = Date.now();
+
+    const checkOnce = (): Promise<boolean> => {
+      return new Promise((resolve) => {
+        db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_refresh_token'], (err, row: any) => {
+          if (!err && row && row.value) {
+            resolve(true);
+            return;
+          }
+          // fallback to access token existence
+          db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_access_token'], (aErr, aRow: any) => {
+            if (!aErr && aRow && aRow.value) {
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          });
+        });
+      });
+    };
+
+    const loop = async (): Promise<void> => {
+      while (true) {
+        const has = await checkOnce();
+        if (has) {
+          // try to set credentials from DB now
+          const ok = await this.setCredentials();
+          if (ok) {
+            // resolve the ready promise once credentials have been set
+            try { this._readyResolve(); } catch {}
+            return;
+          }
+        }
+
+        if (timeoutMs && Date.now() - start >= timeoutMs) {
+          throw new Error('Timed out waiting for Google credentials');
+        }
+
+        // wait before next check
+        await new Promise(res => setTimeout(res, intervalMs));
+      }
+    };
+
+    return loop();
+  }
+
+  // Helper that consumers can await with optional timeout
+  async ensureCredentialsAvailable(timeoutMs?: number): Promise<void> {
+    if (timeoutMs == null) {
+      return this.ready;
+    }
+
+    return Promise.race([
+      this.ready,
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Timeout waiting for Google credentials')), timeoutMs))
+    ]);
   }
 
   // Store token in database
@@ -313,7 +392,7 @@ export class GoogleCalendarService {
       return {
         success: true,
         message: 'Google Calendar API connection successful',
-        userEmail: userInfo.data.email
+        userEmail: userInfo.data.email ?? undefined   // ensure null becomes undefined
       };
     } catch (error: any) {
       console.error('❌ Google Calendar API test failed:', error);
