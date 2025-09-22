@@ -5,7 +5,7 @@ import { Calendar, ApiResponse } from '../../../shared/types';
 const router = Router();
 
 // GET /api/calendars - Retrieve all calendars
-router.get('/', (req: Request, res: Response) => {
+router.get('/', (req: Request, res: Response): void => {
   const query = 'SELECT * FROM calendars ORDER BY name';
   db.all(query, [], (err, rows: Calendar[]) => {
     if (err) {
@@ -16,7 +16,7 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 // GET /api/calendars/selected - Retrieve only selected calendars
-router.get('/selected', (req: Request, res: Response) => {
+router.get('/selected', (req: Request, res: Response): void => {
   const query = 'SELECT * FROM calendars WHERE selected = 1 ORDER BY name ASC';
   
   db.all(query, [], (err, rows: Calendar[]) => {
@@ -80,7 +80,6 @@ router.post('/', (req: Request, res: Response) => {
     };
     return res.status(201).json(response);
   });
-  return;
 });
 
 // PUT /api/calendars/:id/toggle - Toggle calendar selection

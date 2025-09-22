@@ -392,7 +392,7 @@ export class GoogleCalendarService {
       return {
         success: true,
         message: 'Google Calendar API connection successful',
-        userEmail: userInfo.data.email ?? undefined   // ensure null becomes undefined
+        userEmail: userInfo.data.email ?? undefined
       };
     } catch (error: any) {
       console.error('❌ Google Calendar API test failed:', error);

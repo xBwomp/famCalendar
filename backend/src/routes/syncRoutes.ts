@@ -63,6 +63,8 @@ router.post('/events', requireAuthAPI, async (req: Request, res: Response) => {
     function(err) {
       if (err) {
         console.error('❌ Error logging sync start:', err);
+        res.status(500).json({ success: false, message: 'Error logging sync start' });
+        return;
       }
     }
   );
@@ -82,6 +84,8 @@ router.post('/events', requireAuthAPI, async (req: Request, res: Response) => {
       (updateErr) => {
         if (updateErr) {
           console.error('❌ Error updating sync log:', updateErr);
+          res.status(500).json({ success: false, message: 'Error updating sync log' });
+          return;
         }
       }
     );
@@ -107,6 +111,8 @@ router.post('/events', requireAuthAPI, async (req: Request, res: Response) => {
       (updateErr) => {
         if (updateErr) {
           console.error('❌ Error updating sync log:', updateErr);
+          res.status(500).json({ success: false, message: 'Error updating sync log' });
+          return;
         }
       }
     );
@@ -204,7 +210,7 @@ router.get('/logs', requireAuthAPI, (req: Request, res: Response) => {
       data: rows,
       message: `Retrieved ${rows.length} sync log entries`
     };
-    res.json(response);
+    return res.json(response);
   });
 });
 

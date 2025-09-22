@@ -134,6 +134,7 @@ router.post('/sample-data', (req: Request, res: Response) => {
         }
       };
       res.json(response);
+      return; // Explicit return after sending response
     });
   });
 });
@@ -157,6 +158,7 @@ router.delete('/clear-data', (req: Request, res: Response) => {
         message: 'All calendars and events cleared successfully'
       };
       res.json(response);
+      return; // Explicit return after sending response
     });
   });
 });

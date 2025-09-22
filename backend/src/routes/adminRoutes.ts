@@ -72,7 +72,7 @@ router.put('/settings', requireAuthAPI, (req: Request, res: Response) => {
           success: true,
           message: 'Settings updated successfully'
         };
-        res.json(response);
+        return res.json(response);
       }
       return;
     }
@@ -80,13 +80,11 @@ router.put('/settings', requireAuthAPI, (req: Request, res: Response) => {
     stmt.run([key, settings[key]], (err) => {
       if (err && !hasError) {
         hasError = true;
-        console.error('Error updating setting:', key, err);
         const response: ApiResponse = {
           success: false,
           error: 'Failed to update settings'
         };
-        res.status(500).json(response);
-        return;
+        return res.status(500).json(response);
       }
 
       completed++;
@@ -95,7 +93,7 @@ router.put('/settings', requireAuthAPI, (req: Request, res: Response) => {
           success: true,
           message: 'Settings updated successfully'
         };
-        res.json(response);
+        return res.json(response);
       }
     });
   });

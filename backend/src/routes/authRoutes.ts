@@ -40,6 +40,7 @@ router.post('/logout', (req: Request, res: Response) => {
       message: 'Logged out successfully'
     };
     res.json(response);
+    return;
   });
 });
 

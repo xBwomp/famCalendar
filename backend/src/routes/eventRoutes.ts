@@ -168,7 +168,7 @@ router.post('/', (req: Request, res: Response) => {
         message: `Event "${title}" created successfully`,
         data: { id, insertedId: this.lastID }
       };
-      res.status(201).json(response);
+      return res.status(201).json(response);
     });
   });
 });
