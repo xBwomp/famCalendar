@@ -80,6 +80,7 @@ router.post('/', (req: Request, res: Response) => {
     };
     return res.status(201).json(response);
   });
+  return;
 });
 
 // PUT /api/calendars/:id/toggle - Toggle calendar selection
