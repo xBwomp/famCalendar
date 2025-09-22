@@ -3,6 +3,10 @@ import cors from 'cors';
 import session from 'express-session';
 import path from 'path';
 import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import { initializeDatabase } from './database/init';
 import passport from './config/passport';
 import calendarRoutes from './routes/calendarRoutes';
@@ -11,9 +15,6 @@ import seedRoutes from './routes/seedRoutes';
 import authRoutes from './routes/authRoutes';
 import adminRoutes from './routes/adminRoutes';
 import syncRoutes from './routes/syncRoutes';
-
-// Load environment variables
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -5,14 +5,13 @@ import { Calendar, ApiResponse } from '../../../shared/types';
 const router = Router();
 
 // GET /api/calendars - Retrieve all calendars
-router.get('/', (req: Request, res: Response): void => {
+router.get('/', (req: Request, res: Response) => {
   const query = 'SELECT * FROM calendars ORDER BY name';
   db.all(query, [], (err, rows: Calendar[]) => {
     if (err) {
-      res.status(500).json({ success: false, message: 'DB error' });
-      return;
+      return res.status(500).json({ success: false, message: 'DB error' });
     }
-    res.json({ success: true, data: rows });
+    return res.json({ success: true, data: rows });
   });
 });
 
@@ -35,7 +34,7 @@ router.get('/selected', (req: Request, res: Response) => {
       data: rows,
       message: `Retrieved ${rows.length} selected calendars`
     };
-    res.json(response);
+    return res.json(response);
   });
 });
 
@@ -79,7 +78,7 @@ router.post('/', (req: Request, res: Response) => {
       message: `Calendar "${name}" created successfully`,
       data: { id, insertedId: this.lastID }
     };
-    res.status(201).json(response);
+    return res.status(201).json(response);
   });
 });
 
@@ -116,7 +115,7 @@ router.put('/:id/toggle', (req: Request, res: Response) => {
       success: true,
       message: 'Calendar selection toggled successfully'
     };
-    res.json(response);
+    return res.json(response);
   });
 });
 
