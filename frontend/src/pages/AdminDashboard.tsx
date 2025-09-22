@@ -212,6 +212,28 @@ const AdminDashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Navigation links */}
+              <div className="hidden sm:flex items-center space-x-2 mr-4">
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Calendar View
+                </a>
+                <a
+                  href="/?simple=1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Simple View
+                </a>
+              </div>
+              
               {user && (
                 <div className="flex items-center space-x-3">
                   {user.picture && (
