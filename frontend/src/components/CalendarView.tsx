@@ -1,8 +1,9 @@
-import React, { useState, JSX } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
 import { CalendarEvent } from '../api';
+import { motion } from 'framer-motion';
 
 export type ViewType = 'day' | 'week' | 'month';
+
 
 interface CalendarViewProps {
   events: CalendarEvent[];
@@ -21,6 +22,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   endHour = 20
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ x: number, y: number } | null>(null);
+
+  // Adjust the type for e in handleEventClick to match broader compatibility
+  const handleEventClick = (event: CalendarEvent, e: React.MouseEvent<Element, MouseEvent>) => {
+    e.stopPropagation();
+
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+
+    setSelectedEvent(event);
+    setPopoverPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top + window.scrollY + rect.height,
+    });
+
+    console.log('Event clicked:', event);
+    console.log('Popover position:', {
+      x: rect.left + rect.width / 2,
+      y: rect.top + window.scrollY + rect.height,
+    });
+  };
 
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
@@ -72,16 +95,93 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const goToToday = () => {
+    // Use local date (browser timezone) for Today
     setCurrentDate(new Date());
   };
 
-  const getEventsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return events.filter(event => {
-      const eventStart = new Date(event.start_time).toISOString().split('T')[0];
-      const eventEnd = new Date(event.end_time).toISOString().split('T')[0];
-      return eventStart <= dateStr && eventEnd >= dateStr;
+  // Parse event date/time into a local Date object. If the input is date-only
+  // (YYYY-MM-DD), construct a local-midnight Date to avoid UTC shifting.
+  const parseToLocalDate = (s: string) => {
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+    if (dateOnly.test(s)) {
+      const [y, m, d] = s.split('-').map(n => parseInt(n, 10));
+      return new Date(y, m - 1, d);
+    }
+    return new Date(s);
+  };
+
+  type EventWithLayout = CalendarEvent & {
+    column: number;
+    totalColumns: number;
+  };
+
+  const assignEventColumns = (events: CalendarEvent[]): EventWithLayout[] => {
+    if (events.length === 0) return [];
+
+    // Sort events by start time
+    const sortedEvents = [...events].sort((a, b) => {
+      const aStart = parseToLocalDate(a.start_time);
+      const bStart = parseToLocalDate(b.start_time);
+      return aStart.getTime() - bStart.getTime();
     });
+
+    // Track ongoing events and their columns
+    const columns: { event: EventWithLayout; endTime: Date }[][] = [];
+    const result: EventWithLayout[] = [];
+
+    for (const event of sortedEvents) {
+      const start = parseToLocalDate(event.start_time);
+      const end = parseToLocalDate(event.end_time);
+
+      // Remove finished columns
+      columns.forEach((col, i) => {
+        columns[i] = col.filter(item => item.endTime > start);
+      });
+
+      // Find first available column or create new
+      let columnIndex = columns.findIndex(col => col.length === 0);
+      if (columnIndex === -1) {
+        columnIndex = columns.length;
+        columns.push([]);
+      }
+
+      // Add event to its column
+      const eventWithLayout: EventWithLayout = {
+        ...event,
+        column: columnIndex,
+        totalColumns: columns.length
+      };
+      columns[columnIndex].push({ event: eventWithLayout, endTime: end });
+      result.push(eventWithLayout);
+    }
+
+    // Update total columns for all events in this group
+    result.forEach(event => {
+      event.totalColumns = columns.length;
+    });
+
+    return result;
+  };
+
+  const getEventsForDate = (date: Date, events: CalendarEvent[]): EventWithLayout[] => {
+    // Normalize comparisons to local YYYY-MM-DD strings to avoid UTC shifts
+    const toLocalISODate = (d: Date) => {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const target = toLocalISODate(date);
+
+    const eventsForDate = events.filter(event => {
+      const eventStart = parseToLocalDate(event.start_time);
+      const eventEnd = parseToLocalDate(event.end_time);
+
+      const startLocal = toLocalISODate(eventStart);
+      const endLocal = toLocalISODate(eventEnd);
+
+      return startLocal <= target && endLocal >= target;
+    });
+
+    return assignEventColumns(eventsForDate);
   };
 
   const getWeekDays = (date: Date) => {
@@ -128,8 +228,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const getEventPosition = (event: CalendarEvent, date: Date) => {
-    const eventStart = new Date(event.start_time);
-    const eventEnd = new Date(event.end_time);
+  const eventStart = parseToLocalDate(event.start_time);
+  const eventEnd = parseToLocalDate(event.end_time);
     const dayStart = new Date(date);
     dayStart.setHours(startHour, 0, 0, 0);
     const dayEnd = new Date(date);
@@ -155,13 +255,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return { top, height: Math.max(height, 5) };
   };
 
+  // Define PopoverPosition type
+  interface PopoverPosition {
+    x: number;
+    y: number;
+    align?: 'left' | 'right';
+  }
+
   const renderDayView = () => {
-    const dayEvents = getEventsForDate(currentDate);
+    const dayEvents = getEventsForDate(currentDate, events);
     const hourSlots = getHourSlots();
 
     return (
       <div className="flex-1 overflow-auto">
-        <div className="min-h-full">
+        <div className="min-h-full" onClick={() => console.log('Container clicked')}>
+          {/* Render hour slots */}
+          {hourSlots.map((hour, index) => (
+            <div key={index} className="hour-slot">
+              {hour}
+            </div>
+          ))}
           {/* All-day events */}
           {dayEvents.filter(e => e.all_day).length > 0 && (
             <div className="bg-gray-50 border-b border-gray-200 p-4">
@@ -175,58 +288,64 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       backgroundColor: `${event.calendar_color || '#3B82F6'}20`,
                       borderLeft: `3px solid ${event.calendar_color || '#3B82F6'}`,
                     }}
+                    onClick={(e: React.MouseEvent) => handleEventClick(event, e)}
                   >
-                    <span className="font-medium">{event.title}</span>
-                    {event.location && (
-                      <span className="text-gray-500">• {event.location}</span>
-                    )}
+                    <span>{event.title}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Time slots with full-day overlay for events */}
-          <div className="relative">
-            {/* Hour grid rows (to set the overall height) */}
-            {hourSlots.map(hour => (
-              <div key={hour} className="flex border-b border-gray-100">
-                <div className="w-16 flex-shrink-0 p-2 text-xs text-gray-500 text-right">
-                  {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
-                </div>
-                <div className="flex-1 h-16" />
-              </div>
-            ))}
-
-            {/* Absolute overlay that spans the full day; events positioned by percent */}
-            <div className="absolute inset-0 pointer-events-none">
-              {dayEvents
-                .filter(e => !e.all_day)
-                .map(event => {
-                  const position = getEventPosition(event, currentDate);
-                  return (
-                    <div
-                      key={event.id}
-                      className="absolute left-1 right-1 p-1 rounded text-xs overflow-hidden pointer-events-auto"
-                      style={{
-                        top: `${position.top}%`,
-                        height: `${position.height}%`,
-                        backgroundColor: `${event.calendar_color || '#3B82F6'}90`,
-                        color: 'white',
-                        minHeight: '20px',
-                      }}
-                    >
-                      <div className="font-medium truncate">{event.title}</div>
-                      <div className="text-xs opacity-90">
-                        {event.all_day ? 'All day' : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
+          {/* Example usage of EventPopover */}
+          {selectedEvent && popoverPosition && (
+            <EventPopover
+              event={selectedEvent}
+              onClose={() => setSelectedEvent(null)}
+              position={popoverPosition}
+            />
+          )}
         </div>
       </div>
+    );
+  };
+
+  // Add explicit types for parameters
+  const EventPopover: React.FC<{
+    event: CalendarEvent;
+    onClose: () => void;
+    position: PopoverPosition;
+  }> = ({ event, onClose, position }) => {
+    return (
+      <motion.div
+        id="event-popover"
+        className="absolute bg-white shadow-lg rounded p-4 z-50"
+        style={{
+          top: position.y,
+          left: position.x,
+          transform: 'translate(-50%, 0)',
+        }}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+      >
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+          onClick={onClose}
+        >
+          ×
+        </button>
+        <h4 className="text-lg font-medium mb-2">{event.title}</h4>
+        <p className="text-sm text-gray-600 mb-2">
+          {formatTime(event.start_time)} - {formatTime(event.end_time)}
+        </p>
+        {event.location && (
+          <p className="text-sm text-gray-600 mb-2">Location: {event.location}</p>
+        )}
+        {event.description && (
+          <p className="text-sm text-gray-600 whitespace-pre-wrap">{event.description}</p>
+        )}
+      </motion.div>
     );
   };
 
@@ -238,7 +357,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       <div className="flex-1 overflow-auto">
         <div className="min-w-full">
           {/* Week header */}
-          <div className="flex border-b border-gray-200 bg-gray-50">
+          <div className="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
             <div className="w-16 flex-shrink-0"></div>
             {weekDays.map(day => (
               <div key={day.toISOString()} className="flex-1 p-2 text-center border-l border-gray-200">
@@ -256,39 +375,90 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             ))}
           </div>
 
-          {/* Time slots */}
-          {hourSlots.map(hour => (
-            <div key={hour} className="flex border-b border-gray-100">
-              <div className="w-16 flex-shrink-0 p-2 text-xs text-gray-500 text-right">
-                {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
-              </div>
-              {weekDays.map(day => {
-                const dayEvents = getEventsForDate(day).filter(e => !e.all_day);
-                const hourEvents = dayEvents.filter(e => {
-                  const eventStart = new Date(e.start_time);
-                  return eventStart.getHours() === hour;
-                });
+          {/* All-day events for the week */}
+          <div className="flex border-b border-gray-200">
+            <div className="w-16 flex-shrink-0 p-2 text-xs text-gray-500 text-right">All-day</div>
+            {weekDays.map(day => {
+              const allDayEvents = getEventsForDate(day, events).filter(e => e.all_day);
+              return (
+                <div key={day.toISOString()} className="flex-1 border-l border-gray-200 p-1">
+                  {allDayEvents.map(event => (
+                    <div
+                      key={event.id}
+                      className="p-1 rounded text-xs truncate"
+                      style={{
+                        backgroundColor: `${event.calendar_color || '#3B82F6'}20`,
+                        color: event.calendar_color || '#3B82F6',
+                      }}
+                    >
+                      {event.title}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
 
-                return (
-                  <div key={day.toISOString()} className="flex-1 h-16 relative border-l border-gray-200">
-                    {hourEvents.map(event => (
-                      <div
-                        key={event.id}
-                        className="absolute left-0 right-0 mx-1 p-1 rounded text-xs overflow-hidden"
-                        style={{
-                          backgroundColor: `${event.calendar_color || '#3B82F6'}90`,
-                          color: 'white',
-                          minHeight: '20px',
-                        }}
-                      >
-                        <div className="font-medium truncate">{event.title}</div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
+          {/* Time grid */}
+          <div className="relative" style={{ height: `${(endHour - startHour) * 4}rem` }}>
+            {/* Hour lines */}
+            {hourSlots.map(hour => (
+              <div key={hour} className="flex absolute w-full" style={{ top: `${((hour - startHour) / (endHour - startHour)) * 100}%` }}>
+                <div className="w-16 flex-shrink-0 p-2 text-xs text-gray-500 text-right">
+                  {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+                </div>
+                <div className="flex-1 border-t border-gray-100"></div>
+              </div>
+            ))}
+
+            {/* Day columns */}
+            <div className="grid grid-cols-7 h-full ml-16">
+              {weekDays.map((day) => (
+                <div key={day.toISOString()} className="relative border-l border-gray-200">
+                  {getEventsForDate(day, events)
+                    .filter(e => !e.all_day)
+                    .map(event => {
+                      const position = getEventPosition(event, day);
+                      return (
+                        <motion.div
+                          key={event.id}
+                          layoutId={`event-${event.id}`}
+                          className="absolute p-1 rounded overflow-hidden cursor-pointer"
+                          style={{
+                            top: `${position.top}%`,
+                            height: `${position.height}%`,
+                            left: `${(event.column * 100) / event.totalColumns}%`,
+                            width: `${100 / event.totalColumns}%`,
+                            backgroundColor: `${event.calendar_color || '#3B82F6'}CC`,
+                            color: 'white',
+                            minHeight: '20px',
+                            zIndex: selectedEvent?.id === event.id ? 50 : 10,
+                          }}
+                          whileHover={{
+                            scale: 1.02,
+                            backgroundColor: event.calendar_color || '#3B82F6',
+                            zIndex: 20,
+                            transition: { duration: 0.1 }
+                          }}
+                          onClick={(e: React.MouseEvent) => {
+                            console.log('Event item clicked');
+                            handleEventClick(event, e);
+                          }}
+                        >
+                          <div className="font-medium truncate">{event.title}</div>
+                          {position.height >= 8 && (
+                            <div className="text-xs opacity-90 truncate">
+                              {formatTime(event.start_time)}
+                              {position.height >= 12 && ` - ${formatTime(event.end_time)}`}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     );
@@ -319,7 +489,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             {weeks.map((week, weekIndex) => (
               <div key={weekIndex} className="grid grid-cols-7 border-b border-gray-200 last:border-b-0" style={{ minHeight: '120px' }}>
                 {week.map(day => {
-                  const dayEvents = getEventsForDate(day);
+                  const dayEvents = getEventsForDate(day, events);
                   const isCurrentMonth = day.getMonth() === currentDate.getMonth();
                   const isToday = day.toDateString() === new Date().toDateString();
 
@@ -405,13 +575,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               onClick={() => navigateDate('prev')}
               className="p-2 hover:bg-gray-100 rounded-md transition-colors"
             >
-              <ChevronLeft className="w-5 h-5" />
+              {/* <ChevronLeft className="w-5 h-5" /> */}
             </button>
             <button
               onClick={() => navigateDate('next')}
               className="p-2 hover:bg-gray-100 rounded-md transition-colors"
             >
-              <ChevronRight className="w-5 h-5" />
+              {/* <ChevronRight className="w-5 h-5" /> */}
             </button>
           </div>
 
@@ -438,6 +608,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       {view === 'day' && renderDayView()}
       {view === 'week' && renderWeekView()}
       {view === 'month' && renderMonthView()}
+
+      {/* Event popover - for debugging, you can remove this later */}
+      {/* <EventPopover 
+        event={{
+          id: '1',
+          title: 'Sample Event',
+          start_time: '2023-10-10T10:00:00',
+          end_time: '2023-10-10T11:00:00',
+          all_day: false,
+          location: '123 Sample St',
+          description: 'This is a sample event description.',
+          calendar_color: '#3B82F6',
+        }}
+        onClose={() => {}}
+        position={{ x: 100, y: 100 }}
+      /> */}
     </div>
   );
 };
