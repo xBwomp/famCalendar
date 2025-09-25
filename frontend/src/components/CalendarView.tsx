@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Clock, MapPin } from 'lucide-react';
+import React, { useState, JSX } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CalendarEvent } from '../api';
 
 export type ViewType = 'day' | 'week' | 'month';
@@ -18,8 +18,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   view,
   onViewChange,
   startHour = 7,
-  endHour = 20,
-  daysToShow = 5
+  endHour = 20
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -187,46 +186,44 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           )}
 
-          {/* Time slots */}
+          {/* Time slots with full-day overlay for events */}
           <div className="relative">
+            {/* Hour grid rows (to set the overall height) */}
             {hourSlots.map(hour => (
               <div key={hour} className="flex border-b border-gray-100">
                 <div className="w-16 flex-shrink-0 p-2 text-xs text-gray-500 text-right">
                   {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                 </div>
-                <div className="flex-1 h-16 relative">
-                  {/* Events for this hour */}
-                  {dayEvents
-                    .filter(e => !e.all_day)
-                    .filter(e => {
-                      const eventStart = new Date(e.start_time);
-                      const eventHour = eventStart.getHours();
-                      return eventHour === hour;
-                    })
-                    .map(event => {
-                      const position = getEventPosition(event, currentDate);
-                      return (
-                        <div
-                          key={event.id}
-                          className="absolute left-1 right-1 p-1 rounded text-xs overflow-hidden"
-                          style={{
-                            top: `${position.top}%`,
-                            height: `${position.height}%`,
-                            backgroundColor: `${event.calendar_color || '#3B82F6'}90`,
-                            color: 'white',
-                            minHeight: '20px',
-                          }}
-                        >
-                          <div className="font-medium truncate">{event.title}</div>
-                          <div className="text-xs opacity-90">
-                            {formatTime(event.start_time)} - {formatTime(event.end_time)}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
+                <div className="flex-1 h-16" />
               </div>
             ))}
+
+            {/* Absolute overlay that spans the full day; events positioned by percent */}
+            <div className="absolute inset-0 pointer-events-none">
+              {dayEvents
+                .filter(e => !e.all_day)
+                .map(event => {
+                  const position = getEventPosition(event, currentDate);
+                  return (
+                    <div
+                      key={event.id}
+                      className="absolute left-1 right-1 p-1 rounded text-xs overflow-hidden pointer-events-auto"
+                      style={{
+                        top: `${position.top}%`,
+                        height: `${position.height}%`,
+                        backgroundColor: `${event.calendar_color || '#3B82F6'}90`,
+                        color: 'white',
+                        minHeight: '20px',
+                      }}
+                    >
+                      <div className="font-medium truncate">{event.title}</div>
+                      <div className="text-xs opacity-90">
+                        {event.all_day ? 'All day' : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
         </div>
       </div>

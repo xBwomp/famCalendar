@@ -24,7 +24,9 @@ const PublicDashboard: React.FC = () => {
       // Fetch selected calendars and events for the next 30 days
       // Include current day by using local start-of-day for the start date
       const startDate = new Date();
-      startDate.setHours(0, 0, 0, 0); // today at 00:00 local
+      // start two days ago at local 00:00 to include earlier events
+      startDate.setDate(startDate.getDate() - 2);
+      startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 30); // 30 days ahead
       endDate.setHours(23, 59, 59, 999); // include entire last day
@@ -165,17 +167,20 @@ const PublicDashboard: React.FC = () => {
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="grid grid-cols-3 items-center">
             <div className="flex items-center space-x-3">
               <Calendar className="w-8 h-8 text-blue-600" />
               <h1 className="text-3xl font-bold text-gray-900">Family Calendar</h1>
             </div>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-500">
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </p>
+            </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-end space-x-4">
               <div className="text-right">
-                <p className="text-sm text-gray-500">
-                  Last updated: {lastUpdated.toLocaleTimeString()}
-                </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <button
                     onClick={fetchData}
@@ -197,7 +202,7 @@ const PublicDashboard: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               <a
                 href="/admin"
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
