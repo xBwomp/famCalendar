@@ -1,6 +1,6 @@
 const API_BASE_URL = 'http://localhost:3001';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -105,7 +105,7 @@ export const adminApi = {
       body: JSON.stringify({ settings }),
     }),
   getDisplayPreferences: () => apiRequest('/api/admin/display-preferences'),
-  updateDisplayPreferences: (preferences: any) =>
+  updateDisplayPreferences: (preferences: Record<string, unknown>) =>
     apiRequest('/api/admin/display-preferences', {
       method: 'PUT',
       body: JSON.stringify({ preferences }),

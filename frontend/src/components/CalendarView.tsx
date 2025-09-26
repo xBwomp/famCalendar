@@ -538,7 +538,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     switch (view) {
       case 'day':
         return formatDate(currentDate);
-      case 'week':
+      case 'week': {
         const weekDays = getWeekDays(currentDate);
         const startWeek = weekDays[0];
         const endWeek = weekDays[6];
@@ -547,6 +547,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         } else {
           return `${formatShortDate(startWeek)} - ${formatShortDate(endWeek)}, ${endWeek.getFullYear()}`;
         }
+      }
       case 'month':
         return formatMonthYear(currentDate);
       default:
