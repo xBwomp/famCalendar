@@ -4,7 +4,6 @@ import { authApi, AuthUser } from '../api';
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AuthUser | null;
-  loading: boolean;
   login: () => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -27,11 +26,11 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const checkAuth = async () => {
     try {
       const response = await authApi.getStatus();
+      console.log('Auth response:', response);
       if (response.success && response.data) {
         setIsAuthenticated(response.data.authenticated);
         setUser(response.data.user || null);
@@ -43,8 +42,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Auth check failed:', error);
       setIsAuthenticated(false);
       setUser(null);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -72,7 +69,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     isAuthenticated,
     user,
-    loading,
     login,
     logout,
     checkAuth,
