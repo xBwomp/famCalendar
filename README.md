@@ -56,8 +56,8 @@ This is a monorepo containing:
 
 ## Development
 
-- Frontend runs on `http://localhost:5173`
-- Backend API runs on `http://localhost:3001`
+- Frontend runs on `http://192.168.1.123:5173`
+- Backend API runs on `http://192.168.1.123:3001`
 - Database: SQLite3 file at `backend/db/calendar.db`
 
 ## Security

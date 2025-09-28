@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = () => {
     // Redirect to Google OAuth
-    window.location.href = 'http://localhost:3001/auth/google';
+    window.location.href = 'http://192.168.1.123:3001/auth/google';
   };
 
   const logout = async () => {
