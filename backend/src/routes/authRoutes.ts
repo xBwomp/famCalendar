@@ -14,6 +14,9 @@ router.get('/google', passport.authenticate('google', {
   ]
 }));
 
+// Send console message
+console.log("Initiate Google OAuth");
+
 // GET /auth/google/callback - Handle Google OAuth callback
 router.get('/google/callback', 
   passport.authenticate('google', { failureRedirect: '/admin/login?error=auth_failed' }),
