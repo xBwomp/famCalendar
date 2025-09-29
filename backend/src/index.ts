@@ -1,3 +1,5 @@
+console.log('Loading backend/src/index.ts');
+
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
@@ -39,6 +41,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // API Routes
+console.log('Registering auth routes');
 app.use('/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/calendars', calendarRoutes);
