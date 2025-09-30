@@ -19,10 +19,11 @@ import adminRoutes from './routes/adminRoutes';
 import syncRoutes from './routes/syncRoutes';
 
 const app = express();
+const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 // Middleware
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3001', 'http://192.168.1.123:5173', 'http://192.168.1.123:3001'], credentials: true }));
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3001'], credentials: true }));
 app.use(express.json());
 
 // Session configuration
@@ -76,14 +77,14 @@ async function startServer() {
     
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://192.168.1.123:${PORT}/api/health`);
-      console.log(`🔐 Google OAuth: http://192.168.1.123:${PORT}/auth/google`);
-      console.log(`👤 Auth status: http://192.168.1.123:${PORT}/auth/status`);
-      console.log(`📅 Calendars API: http://192.168.1.123:${PORT}/api/calendars`);
-      console.log(`📆 Events API: http://192.168.1.123:${PORT}/api/events`);
-      console.log(`🌱 Seed API: http://192.168.1.123:${PORT}/api/seed`);
-      console.log(`🔄 Sync API: http://192.168.1.123:${PORT}/api/sync`);
-      console.log(`⚙️  Admin API: http://192.168.1.123:${PORT}/api/admin`);
+      console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`🔐 Google OAuth: http://localhost:${PORT}/auth/google`);
+      console.log(`👤 Auth status: http://localhost:${PORT}/auth/status`);
+      console.log(`📅 Calendars API: http://localhost:${PORT}/api/calendars`);
+      console.log(`📆 Events API: http://localhost:${PORT}/api/events`);
+      console.log(`🌱 Seed API: http://localhost:${PORT}/api/seed`);
+      console.log(`🔄 Sync API: http://localhost:${PORT}/api/sync`);
+      console.log(`⚙️  Admin API: http://localhost:${PORT}/api/admin`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

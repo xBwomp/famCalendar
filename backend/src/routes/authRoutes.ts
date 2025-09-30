@@ -6,13 +6,23 @@ import { ApiResponse } from '../../../shared/types';
 const router = Router();
 
 // GET /auth/google - Initiate Google OAuth
-router.get('/google', passport.authenticate('google', {
-  scope: [
-    'profile',
-    'email',
-    'https://www.googleapis.com/auth/calendar.readonly'
-  ]
-}));
+router.get('/google', (req, res, next) => {
+  console.log('Request to /auth/google received');
+  passport.authenticate('google', { scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar.readonly'] }, (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res.redirect('/login');
+    }
+    req.logIn(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      return res.redirect('/admin/dashboard');
+    });
+  })(req, res, next);
+});
 
 // Send console message
 console.log("Initiate Google OAuth");
