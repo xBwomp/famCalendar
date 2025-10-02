@@ -45,3 +45,20 @@ button:focus-visible, a:focus-visible {
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+@keyframes breathing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(252, 211, 77, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(252, 211, 77, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(252, 211, 77, 0);
+  }
+}
+
+.breathing-border {
+  animation: breathing 2s infinite;
+}
+

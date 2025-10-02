@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, RefreshCw, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, RefreshCw, Settings, ChevronLeft, ChevronRight, Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { eventApi, calendarApi, CalendarEvent, Calendar as CalendarType } from '../api';
 
 const PublicDashboard: React.FC = () => {
@@ -16,7 +16,26 @@ const PublicDashboard: React.FC = () => {
     return `${y}-${m}-${day}`;
   };
 
+  const [expandedEvents, setExpandedEvents] = useState<string[]>([]);
+
+  const toggleDescription = (eventId: string) => {
+    setExpandedEvents(prev => 
+      prev.includes(eventId) 
+        ? prev.filter(id => id !== eventId) 
+        : [...prev, eventId]
+    );
+  };
+
   const [simpleDate, setSimpleDate] = useState<string>(formatLocalDateISO(new Date()));
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchData = async () => {
     console.log('Fetching data');
@@ -71,11 +90,12 @@ const PublicDashboard: React.FC = () => {
   }, []);
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-    });
+      timeZone: 'America/New_York',
+    }).format(new Date(dateString));
   };
 
   const formatDate = (dateString: string) => {
@@ -89,12 +109,13 @@ const PublicDashboard: React.FC = () => {
       d = new Date(dateString);
     }
 
-    return d.toLocaleDateString('en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    });
+      timeZone: 'America/New_York',
+    }).format(d);
   };
 
   // Navigate simple view date
@@ -282,10 +303,7 @@ const PublicDashboard: React.FC = () => {
           {/* Precompute filtered and sorted events for the selected date */}
           {(() => {
             const selected = simpleDate;
-            // Filter events that overlap the selected date
-            // and sort them by start_time ascending
             const filteredEvents = events.filter(event => {
-              // compare using local date (YYYY-MM-DD) derived from local Date of event times
               const startLocal = (() => {
                 const sd = new Date(event.start_time);
                 return formatLocalDateISO(new Date(sd.getFullYear(), sd.getMonth(), sd.getDate()));
@@ -295,24 +313,7 @@ const PublicDashboard: React.FC = () => {
                 return formatLocalDateISO(new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()));
               })();
               return startLocal <= selected && endLocal >= selected;
-            }).sort((a, b) => {
-              // Compute effective local minutes-from-midnight for each event on the selected date
-              const makeEffectiveMinutes = (ev: CalendarEvent) => {
-                // Parse start date/time (fall back to helper if needed)
-                let sd = new Date(ev.start_time);
-                if (isNaN(sd.getTime())) sd = parseEventDateTime(ev.start_time, selected);
-
-                // Extract local date portion of the event start
-                const evStartDateISO = sd.toISOString().split('T')[0];
-
-                // If event starts before the selected date, treat as 0 minutes (start of day)
-                if (evStartDateISO < selected) return 0;
-
-                return sd.getHours() * 60 + sd.getMinutes();
-              };
-
-              return makeEffectiveMinutes(a) - makeEffectiveMinutes(b);
-            });
+            }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
             if (filteredEvents.length === 0) {
               return <div className="p-4 text-gray-500">No events found.</div>;
@@ -320,14 +321,51 @@ const PublicDashboard: React.FC = () => {
 
             return (
               <div className="space-y-4">
-                {filteredEvents.map(event => (
-                  <div key={event.id} className="bg-white rounded-lg shadow p-4">
-                    <h3 className="text-lg font-medium">{event.title}</h3>
-                    <div className="text-sm text-gray-500">{formatTime(event.start_time)} - {formatTime(event.end_time)}</div>
-                    {event.location && <div className="text-sm text-gray-500">{event.location}</div>}
-                    {event.description && <div className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{event.description}</div>}
-                  </div>
-                ))}
+                {filteredEvents.map(event => {
+                  const calendar = calendars.find(c => c.id === event.calendar_id);
+                  const startTime = new Date(event.start_time);
+                  const endTime = new Date(event.end_time);
+                  const isCurrent = startTime <= currentTime && currentTime <= endTime;
+
+                  return (
+                    <div className={`rounded-lg ${isCurrent ? 'breathing-border' : ''}`}>
+                      <div 
+                        key={event.id} 
+                        className={`bg-white rounded-lg shadow-md p-4 border-l-4 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl`}
+                        style={{ borderColor: calendar ? calendar.color : '#ccc' }}
+                      >
+                        <div className="relative">
+                          <h3 className="text-xl font-bold text-gray-800">{event.title}</h3>
+                          {event.description && event.description.length > 100 && (
+                            <button 
+                              onClick={() => toggleDescription(event.id)}
+                              className="absolute top-0 right-0 text-gray-500 hover:text-gray-700"
+                            >
+                              {expandedEvents.includes(event.id) ? <ChevronUp /> : <ChevronDown />}
+                            </button>
+                          )}
+                        </div>
+                        <div className="text-md text-gray-600 mt-1 flex items-center">
+                          <Clock className="w-4 h-4 mr-2" />
+                          <span>{formatTime(event.start_time)} - {formatTime(event.end_time)}</span>
+                        </div>
+                        {event.location && (
+                          <div className="text-md text-gray-600 mt-1 flex items-center">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            <span>{event.location}</span>
+                          </div>
+                        )}
+                        {event.description && (
+                          <div className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">
+                            {expandedEvents.includes(event.id) 
+                              ? event.description 
+                              : `${event.description.substring(0, 100)}...`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })()}
