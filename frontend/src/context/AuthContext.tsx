@@ -4,6 +4,7 @@ import { authApi, AuthUser } from '../api';
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AuthUser | null;
+  loading: boolean; // Add loading state
   login: () => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -26,6 +27,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true); // Start with loading true
 
   const checkAuth = async () => {
     try {
@@ -42,6 +44,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Auth check failed:', error);
       setIsAuthenticated(false);
       setUser(null);
+    } finally {
+      setLoading(false); // Set loading to false after check
     }
   };
 
@@ -70,6 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     isAuthenticated,
     user,
+    loading, // Expose loading state
     login,
     logout,
     checkAuth,
