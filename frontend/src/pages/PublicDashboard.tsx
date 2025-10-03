@@ -37,7 +37,7 @@ const PublicDashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     console.log('Fetching data');
     setLoading(true);
     setError(null);
@@ -78,7 +78,7 @@ const PublicDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     console.log('PublicDashboard useEffect');
@@ -87,7 +87,7 @@ const PublicDashboard: React.FC = () => {
     // Auto-refresh every 5 minutes
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('en-US', {
