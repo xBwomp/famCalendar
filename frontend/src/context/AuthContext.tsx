@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = () => {
     // Redirect to Google OAuth
-    const googleAuthUrl = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+    const googleAuthUrl = `${import.meta.env.VITE_API_BASE_URL || ''}/auth/google`;
     window.location.href = googleAuthUrl;
   };
 
