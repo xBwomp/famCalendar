@@ -23,7 +23,7 @@ const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 // Middleware
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3001'], credentials: true }));
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3001', 'http://192.168.1.123:5173', 'http://192.168.1.123:3001'], credentials: true }));
 app.use(express.json());
 
 // Session configuration
