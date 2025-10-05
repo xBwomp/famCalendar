@@ -77,14 +77,14 @@ async function startServer() {
     
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`🔐 Google OAuth: http://localhost:${PORT}/auth/google`);
-      console.log(`👤 Auth status: http://localhost:${PORT}/auth/status`);
-      console.log(`📅 Calendars API: http://localhost:${PORT}/api/calendars`);
-      console.log(`📆 Events API: http://localhost:${PORT}/api/events`);
-      console.log(`🌱 Seed API: http://localhost:${PORT}/api/seed`);
-      console.log(`🔄 Sync API: http://localhost:${PORT}/api/sync`);
-      console.log(`⚙️  Admin API: http://localhost:${PORT}/api/admin`);
+      console.log(`\uD83D\uDCCA Health check: http://${HOST}:${PORT}/api/health`);
+      console.log(`\uD83D\uDD10 Google OAuth: http://${HOST}:${PORT}/auth/google`);
+      console.log(`\uD83D\uDC64 Auth status: http://${HOST}:${PORT}/auth/status`);
+      console.log(`\uD83D\uDCC5 Calendars API: http://${HOST}:${PORT}/api/calendars`);
+      console.log(`\uD83D\uDCC6 Events API: http://${HOST}:${PORT}/api/events`);
+      console.log(`\uD83C\uDF31 Seed API: http://${HOST}:${PORT}/api/seed`);
+      console.log(`\uD83D\uDD04 Sync API: http://${HOST}:${PORT}/api/sync`);
+      console.log(`⚙️  Admin API: http://${HOST}:${PORT}/api/admin`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
