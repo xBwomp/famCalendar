@@ -27,3 +27,8 @@ backend/db/*
 
 .gemini/
 gha-creds-*.json
+
+# Shared directory build artifacts
+shared/*.js
+shared/*.js.map
+shared/*.d.ts
