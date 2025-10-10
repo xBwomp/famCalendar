@@ -110,6 +110,7 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify({ preferences }),
     }),
+  getLastSyncTime: () => apiRequest<{ lastSyncTime: string }>('/api/admin/last-sync-time'),
 };
 
 // Sync API

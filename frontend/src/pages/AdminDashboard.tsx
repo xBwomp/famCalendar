@@ -10,6 +10,20 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<{ success?: boolean; message?: string } | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+
+  const fetchLastSyncTime = async () => {
+    try {
+      const response = await adminApi.getLastSyncTime();
+      if (response.success && response.data) {
+        setLastSyncTime(response.data.lastSyncTime);
+      } else {
+        console.error(response.error || 'Failed to fetch last sync time');
+      }
+    } catch (err) {
+      console.error('Error fetching last sync time:', err);
+    }
+  };
 
   const fetchCalendars = async () => {
     setLoading(true);
@@ -187,6 +201,7 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchCalendars();
+    fetchLastSyncTime();
   }, []);
 
   if (loading) {
@@ -209,6 +224,11 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center space-x-3">
               <Settings className="w-8 h-8 text-blue-600" />
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+              {lastSyncTime && (
+                <div className="text-sm text-gray-500 ml-4">
+                  <p>Last updated: {new Date(lastSyncTime).toLocaleString()}</p>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center space-x-4">
@@ -230,6 +250,7 @@ const AdminDashboard: React.FC = () => {
                       src={user.picture}
                       alt={user.name}
                       className="w-8 h-8 rounded-full"
+                      referrerPolicy="no-referrer"
                     />
                   )}
                   <div className="text-right">
@@ -414,7 +435,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               
               <div className="divide-y divide-gray-200">
-                {calendars.map((calendar) => (
+                {[...calendars].sort((a, b) => b.selected - a.selected).map((calendar) => (
                   <div key={calendar.id} className="px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div

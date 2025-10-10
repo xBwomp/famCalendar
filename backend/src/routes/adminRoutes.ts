@@ -194,4 +194,31 @@ router.put('/display-preferences', requireAuthAPI, (req: Request, res: Response)
   stmt.finalize();
 });
 
+router.get('/last-sync-time', requireAuthAPI, (req: Request, res: Response) => {
+  db.get('SELECT value FROM admin_settings WHERE key = ?', ['last_sync_time'], (err, row: any) => {
+    if (err) {
+      console.error('Error fetching last sync time:', err);
+      const response: ApiResponse = {
+        success: false,
+        error: 'Failed to fetch last sync time'
+      };
+      return res.status(500).json(response);
+    }
+
+    if (row) {
+      const response: ApiResponse = {
+        success: true,
+        data: { lastSyncTime: row.value }
+      };
+      res.json(response);
+    } else {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Last sync time not found'
+      };
+      res.status(404).json(response);
+    }
+  });
+});
+
 export default router;

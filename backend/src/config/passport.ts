@@ -60,59 +60,40 @@ passport.serializeUser((user: Express.User, done) => {
 
 // Deserialize user from session
 passport.deserializeUser((id: string, done) => {
-  // Retrieve user info from admin_settings
-  db.get('SELECT value FROM admin_settings WHERE key = ?', ['admin_user_email'], (err, row: any) => {
+  const keys = [
+    'admin_user_id',
+    'admin_user_email',
+    'admin_user_name',
+    'admin_user_picture',
+    'google_access_token',
+    'google_refresh_token'
+  ];
+  const query = `SELECT key, value FROM admin_settings WHERE key IN (${keys.map(() => '?').join(',')})`;
+
+  db.all(query, keys, (err, rows: any[]) => {
     if (err) {
       return done(err, null);
     }
-    
-    if (!row) {
+
+    if (!rows || rows.length === 0) {
       return done(null, undefined);
     }
 
-    // Reconstruct user object from stored settings
-    const getUserSettings = () => {
-      return new Promise<Express.User>((resolve, reject) => {
-        const queries = [
-          'SELECT value FROM admin_settings WHERE key = "admin_user_id"',
-          'SELECT value FROM admin_settings WHERE key = "admin_user_email"',
-          'SELECT value FROM admin_settings WHERE key = "admin_user_name"',
-          'SELECT value FROM admin_settings WHERE key = "admin_user_picture"',
-          'SELECT value FROM admin_settings WHERE key = "google_access_token"',
-          'SELECT value FROM admin_settings WHERE key = "google_refresh_token"'
-        ];
+    const userSettings: Record<string, string> = {};
+    rows.forEach(row => {
+      userSettings[row.key] = row.value;
+    });
 
-        const results: string[] = [];
-        let completed = 0;
-
-        queries.forEach((query, index) => {
-          db.get(query, [], (err, row: any) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            results[index] = row?.value || '';
-            completed++;
-            
-            if (completed === queries.length) {
-              const user: Express.User = {
-                id: results[0],
-                email: results[1],
-                name: results[2],
-                picture: results[3] || undefined,
-                accessToken: results[4],
-                refreshToken: results[5] || undefined
-              };
-              resolve(user);
-            }
-          });
-        });
-      });
+    const user: Express.User = {
+      id: userSettings.admin_user_id,
+      email: userSettings.admin_user_email,
+      name: userSettings.admin_user_name,
+      picture: userSettings.admin_user_picture || undefined,
+      accessToken: userSettings.google_access_token,
+      refreshToken: userSettings.google_refresh_token || undefined
     };
 
-    getUserSettings()
-      .then(user => done(null, user))
-      .catch(err => done(err, null));
+    done(null, user);
   });
 });
 

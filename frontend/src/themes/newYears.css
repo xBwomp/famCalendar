@@ -1,0 +1,12 @@
+.new-years-theme .breathing-border {
+  animation: breathing-border-new-years 2s ease-in-out infinite;
+}
+
+@keyframes breathing-border-new-years {
+  0%, 100% {
+    box-shadow: 0 0 10px 5px #FFD700;
+  }
+  50% {
+    box-shadow: 0 0 20px 10px #C0C0C0;
+  }
+}
