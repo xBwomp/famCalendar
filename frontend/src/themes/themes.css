@@ -1,0 +1,27 @@
+.public-dashboard {
+  background: linear-gradient(to bottom, var(--background-color), var(--background-color-dark));
+  color: var(--text-color);
+}
+
+.public-dashboard header {
+  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+  color: var(--text-color);
+}
+
+.public-dashboard h1,
+.public-dashboard h2,
+.public-dashboard p {
+  color: var(--text-color);
+}
+
+.public-dashboard .date-picker,
+.public-dashboard .today-button {
+  background-color: white;
+  color: black;
+}
+
+.public-dashboard .refresh-button,
+.public-dashboard .admin-button {
+  background-color: white;
+  color: var(--primary-color);
+}

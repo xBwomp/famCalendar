@@ -11,16 +11,17 @@ import '../themes/newYears.css';
 
 const PublicDashboard: React.FC = () => {
   const { theme } = useTheme();
+
+  const themeStyles = {
+    '--background-color': theme.styles.backgroundColor,
+    '--text-color': theme.styles.textColor,
+    '--primary-color': theme.styles.primaryColor,
+    '--secondary-color': theme.styles.secondaryColor,
+  } as React.CSSProperties;
+
   console.log('Rendering PublicDashboard');
 
-  const darkenColor = (color: string, percent: number) => {
-    const num = parseInt(color.replace("#", ""), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = (num >> 16) - amt;
-    const G = (num >> 8 & 0x00FF) - amt;
-    const B = (num & 0x0000FF) - amt;
-    return `#${(0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1)}`;
-  };
+
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,18 +200,18 @@ const PublicDashboard: React.FC = () => {
 
   console.log('Rendering dashboard');
   return (
-    <div className={`min-h-screen ${theme.name.toLowerCase()}-theme`} style={{ background: `linear-gradient(to bottom, ${theme.styles.backgroundColor}, ${darkenColor(theme.styles.backgroundColor, 10)})`, color: theme.styles.textColor }}>
+    <div className={`min-h-screen ${theme.name.toLowerCase()}-theme`} style={themeStyles}>
       {/* Header */}
-      <header className="shadow-sm border-b" style={{ background: `linear-gradient(to right, ${theme.styles.primaryColor}, ${theme.styles.secondaryColor})`, color: theme.styles.textColor }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="grid grid-cols-3 items-center">
             <div className="flex items-center space-x-3">
               <Calendar className="w-8 h-8 text-blue-600" />
-              <h1 className="text-3xl font-bold" style={{ color: theme.styles.textColor }}>Family Calendar</h1>
+              <h1 className="text-3xl font-bold">Family Calendar</h1>
             </div>
 
             <div className="text-center">
-              <p className="text-sm" style={{ color: theme.styles.textColor }}>
+              <p className="text-sm">
                 Last updated: {lastUpdated.toLocaleTimeString()}
               </p>
             </div>
@@ -221,7 +222,6 @@ const PublicDashboard: React.FC = () => {
                   <button
                     onClick={fetchData}
                     className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm transition-colors"
-                    style={{ backgroundColor: 'white', color: theme.styles.primaryColor }}
                   >
                     <RefreshCw className="w-4 h-4 mr-1" />
                     Refresh
@@ -232,7 +232,6 @@ const PublicDashboard: React.FC = () => {
               <a
                 href="/admin"
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm transition-colors"
-                style={{ backgroundColor: 'white', color: theme.styles.primaryColor }}
               >
                 <Settings className="w-4 h-4 mr-1" />
                 Admin
@@ -253,7 +252,7 @@ const PublicDashboard: React.FC = () => {
         {calendars.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-4">
-              <h2 className="text-lg font-semibold" style={{ color: theme.styles.textColor }}>Active Calendars</h2>
+              <h2 className="text-lg font-semibold">Active Calendars</h2>
               <div className="flex flex-wrap gap-2">
                 {calendars.map((calendar) => (
                   <div
@@ -282,7 +281,7 @@ const PublicDashboard: React.FC = () => {
         {/* Simple View (always shown) */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold" style={{ color: theme.styles.textColor }}>
+            <h2 className="text-2xl font-bold">
               Events for {formatDate(simpleDate)}
             </h2>
             <div className="flex items-center space-x-2">
@@ -299,7 +298,6 @@ const PublicDashboard: React.FC = () => {
                 value={simpleDate}
                 onChange={(e) => setSimpleDate(e.target.value)}
                 className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                style={{ backgroundColor: 'white', color: 'black' }}
                 aria-label="Select date"
               />
 
@@ -314,82 +312,11 @@ const PublicDashboard: React.FC = () => {
               <button
                 onClick={() => setSimpleDate(formatLocalDateISO(new Date()))}
                 className="ml-2 px-3 py-1 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50"
-                style={{ backgroundColor: 'white', color: 'black' }}
               >
                 Today
               </button>
             </div>
           </div>
-
-          {/* Precompute filtered and sorted events for the selected date */}
-          {(() => {
-            const selected = simpleDate;
-            const filteredEvents = events.filter(event => {
-              const startLocal = (() => {
-                const sd = new Date(event.start_time);
-                return formatLocalDateISO(new Date(sd.getFullYear(), sd.getMonth(), sd.getDate()));
-              })();
-              const endLocal = (() => {
-                const ed = new Date(event.end_time);
-                return formatLocalDateISO(new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()));
-              })();
-              return startLocal <= selected && endLocal >= selected;
-            }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-
-            if (filteredEvents.length === 0) {
-              return <div className="p-4 text-gray-500">No events found.</div>;
-            }
-
-            return (
-              <div className="space-y-4">
-                {filteredEvents.map(event => {
-                  const calendar = calendars.find(c => c.id === event.calendar_id);
-                  const startTime = new Date(event.start_time);
-                  const endTime = new Date(event.end_time);
-                  const isCurrent = startTime <= currentTime && currentTime <= endTime;
-
-                  return (
-                    <div className={`rounded-lg ${isCurrent ? 'breathing-border' : ''}`}>
-                      <div 
-                        key={event.id} 
-                        className={`bg-white rounded-lg shadow-md p-4 border-l-4 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl`}
-                        style={{ borderColor: calendar ? calendar.color : '#ccc' }}
-                      >
-                        <div className="relative">
-                          <h3 className="text-xl font-bold text-gray-800">{event.title}</h3>
-                          {event.description && event.description.length > 100 && (
-                            <button 
-                              onClick={() => toggleDescription(event.id)}
-                              className="absolute top-0 right-0 text-gray-500 hover:text-gray-700"
-                            >
-                              {expandedEvents.includes(event.id) ? <ChevronUp /> : <ChevronDown />}
-                            </button>
-                          )}
-                        </div>
-                        <div className="text-md text-gray-600 mt-1 flex items-center">
-                          <Clock className="w-4 h-4 mr-2" />
-                          <span>{formatTime(event.start_time)} - {formatTime(event.end_time)}</span>
-                        </div>
-                        {event.location && (
-                          <div className="text-md text-gray-600 mt-1 flex items-center">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            <span>{event.location}</span>
-                          </div>
-                        )}
-                        {event.description && (
-                          <div className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">
-                            {expandedEvents.includes(event.id) 
-                              ? event.description 
-                              : `${event.description.substring(0, 100)}...`}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
         </div>
       </main>
     </div>

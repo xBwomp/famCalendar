@@ -4,9 +4,9 @@
 
 @keyframes breathing-border-halloween {
   0%, 100% {
-    box-shadow: 0 0 10px 5px #FF7900;
+    box-shadow: 0 0 10px 5px var(--primary-color);
   }
   50% {
-    box-shadow: 0 0 20px 10px #663399;
+    box-shadow: 0 0 20px 10px var(--secondary-color);
   }
 }
