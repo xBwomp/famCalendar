@@ -1,12 +1,7 @@
-.new-years-theme .breathing-border {
-  animation: breathing-border-new-years 2s ease-in-out infinite;
-}
-
-@keyframes breathing-border-new-years {
-  0%, 100% {
-    box-shadow: 0 0 10px 5px var(--primary-color);
-  }
-  50% {
-    box-shadow: 0 0 20px 10px var(--secondary-color);
-  }
+.new-years-theme {
+  --background-color: #000000;
+  --background-color-dark: #222222;
+  --text-color: #FFFFFF;
+  --primary-color: #FFD700;
+  --secondary-color: #C0C0C0;
 }

@@ -1,12 +1,7 @@
-.halloween-theme .breathing-border {
-  animation: breathing-border-halloween 2s ease-in-out infinite;
-}
-
-@keyframes breathing-border-halloween {
-  0%, 100% {
-    box-shadow: 0 0 10px 5px var(--primary-color);
-  }
-  50% {
-    box-shadow: 0 0 20px 10px var(--secondary-color);
-  }
+.halloween-theme {
+  --background-color: #000000;
+  --background-color-dark: #FF7900;
+  --text-color: #FFFFFF;
+  --primary-color: #FF7900;
+  --secondary-color: #663399;
 }

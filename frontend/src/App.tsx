@@ -6,6 +6,7 @@ import PublicDashboard from './pages/PublicDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
 import './index.css';
+import './themes/themes.css';
 
 import { ThemeProvider } from './context/ThemeContext';
 

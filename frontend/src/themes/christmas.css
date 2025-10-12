@@ -1,12 +1,7 @@
-.christmas-theme .breathing-border {
-  animation: breathing-border-christmas 2s ease-in-out infinite;
-}
-
-@keyframes breathing-border-christmas {
-  0%, 100% {
-    box-shadow: 0 0 10px 5px var(--primary-color);
-  }
-  50% {
-    box-shadow: 0 0 20px 10px var(--secondary-color);
-  }
+.christmas-theme {
+  --background-color: #FFFFFF;
+  --background-color-dark: #E0E0E0;
+  --text-color: #000000;
+  --primary-color: #DC3545;
+  --secondary-color: #28A745;
 }

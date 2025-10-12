@@ -4,20 +4,8 @@ import { eventApi, calendarApi, CalendarEvent, Calendar as CalendarType } from '
 
 import { useTheme } from '../context/ThemeContext';
 
-import '../themes/halloween.css';
-import '../themes/thanksgiving.css';
-import '../themes/christmas.css';
-import '../themes/newYears.css';
-
 const PublicDashboard: React.FC = () => {
   const { theme } = useTheme();
-
-  const themeStyles = {
-    '--background-color': theme.styles.backgroundColor,
-    '--text-color': theme.styles.textColor,
-    '--primary-color': theme.styles.primaryColor,
-    '--secondary-color': theme.styles.secondaryColor,
-  } as React.CSSProperties;
 
   console.log('Rendering PublicDashboard');
 
@@ -85,6 +73,7 @@ const PublicDashboard: React.FC = () => {
 
       if (eventsResponse.success && eventsResponse.data) {
         setEvents(eventsResponse.data);
+        console.log('Fetched events:', eventsResponse.data);
       } else {
         setError(eventsResponse.error || 'Failed to fetch events');
       }
@@ -186,6 +175,13 @@ const PublicDashboard: React.FC = () => {
   // Sort events by parsed start time
   parsedEvents.sort((a, b) => a.parsedStartTime.getTime() - b.parsedStartTime.getTime());
 
+  console.log('parsedEvents', parsedEvents);
+  console.log('simpleDate', simpleDate);
+  console.log('filtered events', parsedEvents.filter(event => {
+    const eventDate = event.parsedStartTime.toISOString().split('T')[0];
+    return eventDate === simpleDate;
+  }));
+
   if (loading) {
     console.log('Rendering loading state');
     return (
@@ -200,7 +196,7 @@ const PublicDashboard: React.FC = () => {
 
   console.log('Rendering dashboard');
   return (
-    <div className={`min-h-screen ${theme.name.toLowerCase()}-theme`} style={themeStyles}>
+    <div className="public-dashboard min-h-screen">
       {/* Header */}
       <header className="shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -316,6 +312,69 @@ const PublicDashboard: React.FC = () => {
                 Today
               </button>
             </div>
+          </div>
+          
+          {/* Events List for Simple View */}
+          <div className="space-y-4">
+            {parsedEvents.filter(event => {
+              const eventDate = event.parsedStartTime.toISOString().split('T')[0];
+              return eventDate === simpleDate;
+            }).length > 0 ? (
+              parsedEvents
+                .filter(event => {
+                  const eventDate = event.parsedStartTime.toISOString().split('T')[0];
+                  return eventDate === simpleDate;
+                })
+                .map(event => (
+                  <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-lg">{event.title}</h3>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <Clock className="w-4 h-4 mr-2" />
+                          <span>
+                            {event.is_all_day
+                              ? 'All Day'
+                              : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`}
+                          </span>
+                        </div>
+                        {event.location && (
+                          <div className="flex items-center text-sm text-gray-500 mt-1">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            <span>{event.location}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className="w-3 h-3 rounded-full mt-1"
+                        style={{ backgroundColor: calendars.find(c => c.id === event.calendar_id)?.color || '#888' }}
+                        title={calendars.find(c => c.id === event.calendar_id)?.name || 'Unknown Calendar'}
+                      ></div>
+                    </div>
+                    {event.description && (
+                      <div className="mt-3">
+                        <button
+                          onClick={() => toggleDescription(event.id)}
+                          className="text-sm text-blue-600 hover:underline flex items-center"
+                        >
+                          {expandedEvents.includes(event.id) ? 'Hide Details' : 'Show Details'}
+                          {expandedEvents.includes(event.id) ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+                        </button>
+                        {expandedEvents.includes(event.id) && (
+                          <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                            {event.description}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+            ) : (
+              <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto" />
+                <p className="mt-4 text-gray-600">No events scheduled for this day.</p>
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -1,5 +1,18 @@
+@import url('./halloween.css');
+@import url('./thanksgiving.css');
+@import url('./christmas.css');
+@import url('./newYears.css');
+
+.default-theme {
+  --background-color: #FFFFFF;
+  --background-color-dark: #E2E2E2;
+  --text-color: #000000;
+  --primary-color: #007BFF;
+  --secondary-color: #6C757D;
+}
+
 .public-dashboard {
-  background: linear-gradient(to bottom, var(--background-color), var(--background-color-dark));
+  background: linear-gradient(to right, var(--background-color), var(--background-color-dark));
   color: var(--text-color);
 }
 

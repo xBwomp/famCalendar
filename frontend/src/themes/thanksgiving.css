@@ -1,12 +1,7 @@
-.thanksgiving-theme .breathing-border {
-  animation: breathing-border-thanksgiving 2s ease-in-out infinite;
-}
-
-@keyframes breathing-border-thanksgiving {
-  0%, 100% {
-    box-shadow: 0 0 10px 5px var(--primary-color);
-  }
-  50% {
-    box-shadow: 0 0 20px 10px var(--secondary-color);
-  }
+.thanksgiving-theme {
+  --background-color: #F8F9FA;
+  --background-color-dark: #E0E0E0;
+  --text-color: #212529;
+  --primary-color: #D2691E;
+  --secondary-color: #8B4513;
 }

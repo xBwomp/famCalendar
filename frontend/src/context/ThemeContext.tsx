@@ -23,12 +23,24 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(getTheme());
 
   useEffect(() => {
+    const currentTheme = getTheme();
+    setTheme(currentTheme);
+
     const interval = setInterval(() => {
-      setTheme(getTheme());
-    }, 60 * 1000); // Check for theme changes every minute
+      const newTheme = getTheme();
+      setTheme(newTheme);
+    }, 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    document.body.classList.add(`${theme.name.toLowerCase()}-theme`);
+
+    return () => {
+      document.body.classList.remove(`${theme.name.toLowerCase()}-theme`);
+    };
+  }, [theme]);
 
   const value: ThemeContextType = {
     theme,

@@ -13,6 +13,15 @@ interface CalendarViewProps {
   daysToShow?: number;
 }
 
+const getContrastingTextColor = (hexColor: string) => {
+  if (!hexColor) return '#000000';
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  return (yiq >= 128) ? '#000000' : '#FFFFFF';
+};
+
 const CalendarView: React.FC<CalendarViewProps> = ({
   events,
   view,
@@ -243,51 +252,90 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     align?: 'left' | 'right';
   }
 
-  const renderDayView = () => {
-    const dayEvents = getEventsForDate(currentDate, events);
-    const hourSlots = getHourSlots();
-
-    return (
-      <div className="flex-1 overflow-auto bg-base">
-        <div className="min-h-full" onClick={() => setSelectedEvent(null)}>
-          {hourSlots.map((hour, index) => (
-            <div key={index} className="hour-slot flex items-center border-b border-neutral/20">
-              <span className="text-xs text-neutral/60 px-2">{hour}:00</span>
-              <div className="flex-grow h-full border-l border-neutral/20"></div>
-            </div>
-          ))}
-          {dayEvents.filter(e => e.all_day).length > 0 && (
-            <div className="bg-neutral/10 border-b border-neutral/20 p-4">
-              <h4 className="text-sm font-medium text-neutral mb-2">All Day</h4>
-              <div className="space-y-1">
+    const renderDayView = () => {
+      const dayEvents = getEventsForDate(currentDate, events);
+      const hourSlots = getHourSlots();
+  
+      return (
+        <div className="flex-1 overflow-auto bg-base">
+          <div className="min-h-full" onClick={() => setSelectedEvent(null)}>
+            <div className="border-b border-neutral/20">
+              <div className="w-16 flex-shrink-0 p-2 text-xs text-neutral/60 text-right">All-day</div>
+              <div className="p-1">
                 {dayEvents.filter(e => e.all_day).map(event => (
                   <div
                     key={event.id}
-                    className="flex items-center space-x-2 p-2 rounded text-sm bg-white shadow-sm"
+                    className="p-1 rounded text-xs truncate cursor-pointer"
                     style={{
-                      borderLeft: `3px solid ${event.calendar_color || '#3B82F6'}`,
+                      backgroundColor: `${event.calendar_color || '#3B82F6'}20`,
+                      color: getContrastingTextColor(event.calendar_color || '#3B82F6'),
                     }}
                     onClick={(e: React.MouseEvent) => handleEventClick(event, e)}
                   >
-                    <span>{event.title}</span>
+                    {event.title}
                   </div>
                 ))}
               </div>
             </div>
-          )}
-
-          {selectedEvent && popoverPosition && (
-            <EventPopover
-              event={selectedEvent}
-              onClose={() => setSelectedEvent(null)}
-              position={popoverPosition}
-            />
-          )}
+            <div className="relative" style={{ height: `${(endHour - startHour) * 4}rem` }}>
+              {hourSlots.map(hour => (
+                <div key={hour} className="flex absolute w-full" style={{ top: `${((hour - startHour) / (endHour - startHour)) * 100}%` }}>
+                  <div className="w-16 flex-shrink-0 p-2 text-xs text-neutral/60 text-right">
+                    {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+                  </div>
+                  <div className="flex-1 border-t border-neutral/20"></div>
+                </div>
+              ))}
+  
+              <div className="absolute top-0 left-16 right-0 h-full">
+                {dayEvents.filter(e => !e.all_day).map(event => {
+                  const position = getEventPosition(event, currentDate);
+                  return (
+                    <motion.div
+                      key={event.id}
+                      layoutId={`event-${event.id}`}
+                      className="absolute p-2 rounded-lg overflow-hidden cursor-pointer shadow-md"
+                      style={{
+                        top: `${position.top}%`,
+                        height: `${position.height}%`,
+                        left: `${(event.column * 100) / event.totalColumns}%`,
+                        width: `${100 / event.totalColumns}%`,
+                        backgroundColor: `${event.calendar_color || '#3B82F6'}`,
+                        color: getContrastingTextColor(event.calendar_color || '#3B82F6'),
+                        minHeight: '20px',
+                        zIndex: selectedEvent?.id === event.id ? 50 : 10,
+                      }}
+                      whileHover={{
+                        scale: 1.05,
+                        zIndex: 20,
+                        transition: { duration: 0.2 }
+                      }}
+                      onClick={(e: React.MouseEvent) => handleEventClick(event, e)}
+                    >
+                      <div className="font-semibold truncate text-sm">{event.title}</div>
+                      {position.height >= 8 && (
+                        <div className="text-xs opacity-90 truncate">
+                          {formatTime(event.start_time)}
+                          {position.height >= 12 && ` - ${formatTime(event.end_time)}`}
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+  
+            {selectedEvent && popoverPosition && (
+              <EventPopover
+                event={selectedEvent}
+                onClose={() => setSelectedEvent(null)}
+                position={popoverPosition}
+              />
+            )}
+          </div>
         </div>
-      </div>
-    );
-  };
-
+      );
+    };
   const EventPopover: React.FC<{
     event: CalendarEvent;
     onClose: () => void;
@@ -296,11 +344,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return (
       <motion.div
         id="event-popover"
-        className="absolute bg-white shadow-lg rounded-lg p-4 z-50 w-64 border border-neutral/20"
+        className="absolute shadow-lg rounded-lg p-4 z-50 w-64 border border-neutral/20"
         style={{
           top: position.y,
           left: position.x,
           transform: 'translate(-50%, 10px)',
+          backgroundColor: event.calendar_color ? `${event.calendar_color}E6` : '#FFFFFF',
         }}
         initial={{ opacity: 0, scale: 0.95, y: -10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -308,20 +357,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         transition={{ duration: 0.2 }}
       >
         <button
-          className="absolute top-2 right-2 text-neutral/50 hover:text-error transition-colors"
+          className="absolute top-2 right-2 hover:text-error transition-colors"
+          style={{ color: getContrastingTextColor(event.calendar_color || '#FFFFFF') }}
           onClick={onClose}
         >
           &times;
         </button>
-        <h4 className="text-lg font-semibold mb-2 text-neutral-800">{event.title}</h4>
-        <p className="text-sm text-neutral/80 mb-2">
+        <h4 className="text-lg font-semibold mb-2" style={{ color: getContrastingTextColor(event.calendar_color || '#FFFFFF') }}>{event.title}</h4>
+        <p className="text-sm mb-2" style={{ color: getContrastingTextColor(event.calendar_color || '#FFFFFF') }}>
           {formatTime(event.start_time)} - {formatTime(event.end_time)}
         </p>
         {event.location && (
-          <p className="text-sm text-neutral/80 mb-2">Location: {event.location}</p>
+          <p className="text-sm mb-2" style={{ color: getContrastingTextColor(event.calendar_color || '#FFFFFF') }}>Location: {event.location}</p>
         )}
         {event.description && (
-          <p className="text-sm text-neutral/80 whitespace-pre-wrap bg-neutral/10 p-2 rounded-md">{event.description}</p>
+          <p className="text-sm whitespace-pre-wrap p-2 rounded-md" style={{ color: getContrastingTextColor(event.calendar_color || '#FFFFFF'), backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>{event.description}</p>
         )}
       </motion.div>
     );
@@ -360,7 +410,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       className="p-1 rounded text-xs truncate cursor-pointer"
                       style={{
                         backgroundColor: `${event.calendar_color || '#3B82F6'}20`,
-                        color: event.calendar_color || '#3B82F6',
+                        color: getContrastingTextColor(event.calendar_color || '#3B82F6'),
                       }}
                       onClick={(e: React.MouseEvent) => handleEventClick(event, e)}
                     >
@@ -400,7 +450,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             left: `${(event.column * 100) / event.totalColumns}%`,
                             width: `${100 / event.totalColumns}%`,
                             backgroundColor: `${event.calendar_color || '#3B82F6'}`,
-                            color: 'white',
+                            color: getContrastingTextColor(event.calendar_color || '#3B82F6'),
                             minHeight: '20px',
                             zIndex: selectedEvent?.id === event.id ? 50 : 10,
                           }}
@@ -469,7 +519,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             className="text-xs p-1 rounded truncate cursor-pointer"
                             style={{
                               backgroundColor: `${event.calendar_color || '#3B82F6'}20`,
-                              color: event.calendar_color || '#3B82F6',
+                              color: getContrastingTextColor(event.calendar_color || '#3B82F6'),
                             }}
                             onClick={(e: React.MouseEvent) => handleEventClick(event, e)}
                           >
