@@ -34,10 +34,16 @@
   color: var(--card-text-color);
 }
 
-.public-dashboard .date-picker,
-.public-dashboard .today-button {
-  background-color: white;
-  color: black;
+/* Date picker and Today button - ensure black text on white background */
+.public-dashboard input[type="date"],
+.public-dashboard button.ml-2 {
+  background-color: white !important;
+  color: black !important;
+}
+
+/* Alternative targeting for Today button */
+.public-dashboard .bg-white.border-gray-300 {
+  color: black !important;
 }
 
 .public-dashboard .refresh-button,
