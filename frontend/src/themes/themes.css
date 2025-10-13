@@ -13,7 +13,11 @@
 }
 
 .public-dashboard {
+<<<<<<< HEAD
   background: linear-gradient(to bottom right, var(--background-color), var(--background-color-dark));
+=======
+  background: linear-gradient(to bottom right, var(--background-color),  var(--background-color-dark));
+>>>>>>> 5cadd112bfd65e15252ed4da508d21eb8074ff0d
   color: var(--text-color);
 }
 
