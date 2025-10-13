@@ -90,17 +90,6 @@ router.post('/events', requireAuthAPI, async (req: Request, res: Response) => {
       }
     );
 
-    // Update last sync time in admin settings
-    db.run(
-      'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
-      ['last_sync_time', new Date().toISOString()],
-      (syncTimeErr) => {
-        if (syncTimeErr) {
-          console.error('❌ Error updating last sync time:', syncTimeErr);
-        }
-      }
-    );
-
     const response: ApiResponse = {
       success: true,
       data: result,
@@ -166,12 +155,6 @@ router.post('/full', requireAuthAPI, async (req: Request, res: Response) => {
         totalEvents,
         syncStartTime
       ]
-    );
-
-    // Update last sync time in admin settings
-    db.run(
-      'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
-      ['last_sync_time', new Date().toISOString()]
     );
 
     const response: ApiResponse = {
