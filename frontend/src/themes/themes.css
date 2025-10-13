@@ -12,12 +12,12 @@
 }
 
 .public-dashboard {
-  background: linear-gradient(to right, var(--background-color), var(--background-color-dark));
+  background: linear-gradient(to bottom right), var(--background-color-dark));
   color: var(--text-color);
 }
 
 .public-dashboard header {
-  background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(to bottom right, var(--primary-color), var(--secondary-color));
   color: var(--text-color);
 }
 
