@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, RefreshCw, Settings, ChevronLeft, ChevronRight, Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
-import { eventApi, calendarApi, CalendarEvent, Calendar as CalendarType } from '../api';
+import { eventApi, calendarApi, adminApi, CalendarEvent, Calendar as CalendarType } from '../api';
 
 import { useTheme } from '../context/ThemeContext';
 
@@ -14,7 +14,7 @@ const PublicDashboard: React.FC = () => {
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const formatLocalDateISO = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -78,7 +78,15 @@ const PublicDashboard: React.FC = () => {
         setError(eventsResponse.error || 'Failed to fetch events');
       }
 
-      setLastUpdated(new Date());
+      // Fetch last sync time from Google
+      try {
+        const syncTimeResponse = await adminApi.getLastSyncTime();
+        if (syncTimeResponse.success && syncTimeResponse.data) {
+          setLastSyncTime(syncTimeResponse.data.lastSyncTime);
+        }
+      } catch (syncTimeError) {
+        console.warn('Could not fetch last sync time:', syncTimeError);
+      }
     } catch (err) {
       setError('Failed to fetch calendar data');
       console.error('Error fetching data:', err);
@@ -208,7 +216,7 @@ const PublicDashboard: React.FC = () => {
 
             <div className="text-center">
               <p className="text-sm">
-                Last updated: {lastUpdated.toLocaleTimeString()}
+                Last synced with Google: {lastSyncTime ? new Date(lastSyncTime).toLocaleString() : 'Never'}
               </p>
             </div>
             
