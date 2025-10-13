@@ -12,7 +12,7 @@
 }
 
 .public-dashboard {
-  background: linear-gradient(to bottom right, var(--background-color-dark));
+  background: linear-gradient(to bottom right, var(--background-color),  var(--background-color-dark));
   color: var(--text-color);
 }
 
