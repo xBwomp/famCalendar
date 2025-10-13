@@ -12,14 +12,10 @@
   --secondary-color: #6C757D;
 }
 
-.public-dashboard {
-<<<<<<< HEAD
-  background: linear-gradient(to bottom right, var(--background-color), var(--background-color-dark));
-=======
-  background: linear-gradient(to bottom right, var(--background-color),  var(--background-color-dark));
->>>>>>> 5cadd112bfd65e15252ed4da508d21eb8074ff0d
-  color: var(--text-color);
-}
+  .public-dashboard {
+    background: linear-gradient(to bottom right, var(--background-color), var(--background-color-dark));
+    color: var(--text-color);
+  }
 
 .public-dashboard header {
   background: linear-gradient(to bottom right, var(--primary-color), var(--secondary-color));
