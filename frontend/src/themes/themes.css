@@ -7,12 +7,13 @@
   --background-color: #FFFFFF;
   --background-color-dark: #E2E2E2;
   --text-color: #000000;
+  --card-text-color: #000000;
   --primary-color: #007BFF;
   --secondary-color: #6C757D;
 }
 
 .public-dashboard {
-  background: linear-gradient(to bottom right, var(--background-color-dark));
+  background: linear-gradient(to bottom right, var(--background-color), var(--background-color-dark));
   color: var(--text-color);
 }
 
@@ -25,6 +26,12 @@
 .public-dashboard h2,
 .public-dashboard p {
   color: var(--text-color);
+}
+
+.public-dashboard .bg-white h3,
+.public-dashboard .bg-white p,
+.public-dashboard .bg-white span {
+  color: var(--card-text-color);
 }
 
 .public-dashboard .date-picker,
