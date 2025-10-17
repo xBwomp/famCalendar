@@ -37,8 +37,16 @@ router.get('/', (req: Request, res: Response) => {
 
   // Add limit
   if (limit) {
+    const limitNum = parseInt(limit as string, 10);
+    if (isNaN(limitNum) || limitNum <= 0) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Invalid limit parameter'
+      };
+      return res.status(400).json(response);
+    }
     query += ' LIMIT ?';
-    params.push(parseInt(limit as string));
+    params.push(limitNum);
   }
 
   db.all(query, params, (err, rows: any[]) => {

@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { db } from '../database/init';
 import { Calendar, CalendarEvent } from '../../../shared/types';
+import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 
 export class GoogleCalendarService {
   private oauth2Client: any;
@@ -8,6 +9,8 @@ export class GoogleCalendarService {
   public ready: Promise<void>;
   private _readyResolve!: () => void;
   private _readyReject!: (err?: any) => void;
+  private credentialsLoaded: boolean = false;
+  private pollingInterval?: NodeJS.Timeout;
 
   constructor() {
     this.oauth2Client = new google.auth.OAuth2(
@@ -22,7 +25,7 @@ export class GoogleCalendarService {
       this._readyReject = reject;
     });
 
-    // Start polling for credentials in the background (non-blocking constructor)
+    // Start checking for credentials in the background (non-blocking constructor)
     this.waitForCredentials().then(() => {
       // resolved inside waitForCredentials when setCredentials succeeds
     }).catch(err => {
@@ -44,32 +47,48 @@ export class GoogleCalendarService {
 
         // Get refresh token as well
         db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_refresh_token'], (refreshErr, refreshRow: any) => {
-          this.oauth2Client.setCredentials({
-            access_token: row.value,
-            refresh_token: refreshRow?.value
-          });
+          try {
+            // Decrypt tokens if they are encrypted
+            let accessToken = row.value;
+            let refreshToken = refreshRow?.value;
 
-          // Set up automatic token refresh
-          this.oauth2Client.on('tokens', (tokens: any) => {
-            if (tokens.access_token) {
-              this.storeToken('google_access_token', tokens.access_token);
+            if (accessToken && isEncrypted(accessToken)) {
+              accessToken = decrypt(accessToken);
             }
-            if (tokens.refresh_token) {
-              this.storeToken('google_refresh_token', tokens.refresh_token);
+            if (refreshToken && isEncrypted(refreshToken)) {
+              refreshToken = decrypt(refreshToken);
             }
-          });
 
-          resolve(true);
+            this.oauth2Client.setCredentials({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+
+            // Set up automatic token refresh
+            this.oauth2Client.on('tokens', (tokens: any) => {
+              if (tokens.access_token) {
+                this.storeToken('google_access_token', tokens.access_token);
+              }
+              if (tokens.refresh_token) {
+                this.storeToken('google_refresh_token', tokens.refresh_token);
+              }
+            });
+
+            resolve(true);
+          } catch (decryptError) {
+            console.error('❌ Error decrypting tokens:', decryptError);
+            resolve(false);
+          }
         });
       });
     });
   }
 
-  // New: poll DB until credentials exist, then set them and resolve ready
+  // Check for credentials and stop polling once found
   async waitForCredentials(intervalMs = 5000, timeoutMs?: number): Promise<void> {
     const start = Date.now();
 
-    const checkOnce = (): Promise<boolean> => {
+    const checkOnce = async (): Promise<boolean> => {
       return new Promise((resolve) => {
         db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_refresh_token'], (err, row: any) => {
           if (!err && row && row.value) {
@@ -88,29 +107,59 @@ export class GoogleCalendarService {
       });
     };
 
-    const loop = async (): Promise<void> => {
-      while (true) {
-        const has = await checkOnce();
-        if (has) {
-          // try to set credentials from DB now
-          const ok = await this.setCredentials();
-          if (ok) {
-            // resolve the ready promise once credentials have been set
-            try { this._readyResolve(); } catch {}
-            return;
+    const checkAndLoad = async (): Promise<void> => {
+      // If credentials already loaded, no need to check again
+      if (this.credentialsLoaded) {
+        return;
+      }
+
+      const has = await checkOnce();
+      if (has) {
+        // try to set credentials from DB now
+        const ok = await this.setCredentials();
+        if (ok) {
+          this.credentialsLoaded = true;
+          // Stop polling
+          if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = undefined;
           }
+          // resolve the ready promise once credentials have been set
+          try {
+            this._readyResolve();
+          } catch {}
+          return;
         }
+      }
 
-        if (timeoutMs && Date.now() - start >= timeoutMs) {
-          throw new Error('Timed out waiting for Google credentials');
+      // Check timeout
+      if (timeoutMs && Date.now() - start >= timeoutMs) {
+        if (this.pollingInterval) {
+          clearInterval(this.pollingInterval);
+          this.pollingInterval = undefined;
         }
-
-        // wait before next check
-        await new Promise(res => setTimeout(res, intervalMs));
+        throw new Error('Timed out waiting for Google credentials');
       }
     };
 
-    return loop();
+    // Initial check
+    await checkAndLoad();
+
+    // If not loaded yet, start polling with setInterval
+    if (!this.credentialsLoaded) {
+      this.pollingInterval = setInterval(async () => {
+        try {
+          await checkAndLoad();
+        } catch (err) {
+          console.error('❌ Error checking for credentials:', err);
+          if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = undefined;
+          }
+          this._readyReject(err);
+        }
+      }, intervalMs);
+    }
   }
 
   // Helper that consumers can await with optional timeout
@@ -125,17 +174,22 @@ export class GoogleCalendarService {
     ]);
   }
 
-  // Store token in database
+  // Store token in database (encrypted)
   private storeToken(key: string, value: string): void {
-    db.run(
-      'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
-      [key, value],
-      (err) => {
-        if (err) {
-          console.error(`❌ Error storing ${key}:`, err);
+    try {
+      const encryptedValue = encrypt(value);
+      db.run(
+        'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+        [key, encryptedValue],
+        (err) => {
+          if (err) {
+            console.error(`❌ Error storing ${key}:`, err);
+          }
         }
-      }
-    );
+      );
+    } catch (encryptError) {
+      console.error(`❌ Error encrypting ${key}:`, encryptError);
+    }
   }
 
   // Fetch user's calendar list from Google
@@ -170,51 +224,60 @@ export class GoogleCalendarService {
   // Sync calendar list to local database
   async syncCalendarList(): Promise<{ imported: number; updated: number }> {
     const calendars = await this.fetchCalendarList();
-    let imported = 0;
-    let updated = 0;
 
     return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        const stmt = db.prepare(`
-          INSERT OR REPLACE INTO calendars (id, name, description, color, selected, updated_at)
-          VALUES (?, ?, ?, ?, 
-            COALESCE((SELECT selected FROM calendars WHERE id = ?), 0),
-            CURRENT_TIMESTAMP)
-        `);
+      // First, get existing calendar IDs to determine new vs updated
+      db.all('SELECT id FROM calendars', [], (err, rows: any[]) => {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-        calendars.forEach(calendar => {
-          stmt.run([
-            calendar.id,
-            calendar.name,
-            calendar.description,
-            calendar.color,
-            calendar.id // For the COALESCE to preserve existing selection
-          ], function(err) {
-            if (err) {
-              console.error('❌ Error syncing calendar:', calendar.name, err);
-            } else {
-              if (this.changes > 0) {
-                // Check if this was an insert or update
-                db.get('SELECT COUNT(*) as count FROM calendars WHERE id = ? AND created_at < updated_at', 
-                  [calendar.id], (countErr, countRow: any) => {
-                    if (!countErr && countRow?.count > 0) {
-                      updated++;
-                    } else {
-                      imported++;
-                    }
-                  });
+        const existingIds = new Set(rows.map(row => row.id));
+        let imported = 0;
+        let updated = 0;
+
+        db.serialize(() => {
+          const stmt = db.prepare(`
+            INSERT OR REPLACE INTO calendars (id, name, description, color, selected, updated_at)
+            VALUES (?, ?, ?, ?,
+              COALESCE((SELECT selected FROM calendars WHERE id = ?), 0),
+              CURRENT_TIMESTAMP)
+          `);
+
+          calendars.forEach(calendar => {
+            // Determine if this is new or existing before the operation
+            const isExisting = existingIds.has(calendar.id);
+
+            stmt.run([
+              calendar.id,
+              calendar.name,
+              calendar.description,
+              calendar.color,
+              calendar.id // For the COALESCE to preserve existing selection
+            ], function(err) {
+              if (err) {
+                console.error('❌ Error syncing calendar:', calendar.name, err);
+              } else {
+                if (this.changes > 0) {
+                  if (isExisting) {
+                    updated++;
+                  } else {
+                    imported++;
+                  }
+                }
               }
+            });
+          });
+
+          stmt.finalize((err) => {
+            if (err) {
+              reject(err);
+            } else {
+              console.log(`✅ Synced ${calendars.length} calendars (${imported} new, ${updated} updated)`);
+              resolve({ imported, updated });
             }
           });
-        });
-
-        stmt.finalize((err) => {
-          if (err) {
-            reject(err);
-          } else {
-            console.log(`✅ Synced ${calendars.length} calendars (${imported} new, ${updated} updated)`);
-            resolve({ imported, updated });
-          }
         });
       });
     });
@@ -289,82 +352,72 @@ export class GoogleCalendarService {
         let totalEvents = 0;
         const errors: string[] = [];
 
-        // Clear existing events for selected calendars
-        const calendarIds = calendars.map(cal => cal.id);
-        const placeholders = calendarIds.map(() => '?').join(',');
-        
-        db.run(`DELETE FROM events WHERE calendar_id IN (${placeholders})`, calendarIds, (deleteErr) => {
-          if (deleteErr) {
-            console.error('❌ Error clearing existing events:', deleteErr);
-            errors.push('Failed to clear existing events');
-          }
+        // Sync events for each selected calendar using INSERT OR REPLACE (no DELETE needed)
+        const syncPromises = calendars.map(async (calendar) => {
+          try {
+            const events = await this.fetchCalendarEvents(calendar.id);
 
-          // Sync events for each selected calendar
-          const syncPromises = calendars.map(async (calendar) => {
-            try {
-              const events = await this.fetchCalendarEvents(calendar.id);
-              
-              // Insert events into database
-              return new Promise<number>((resolveEvents, rejectEvents) => {
-                if (events.length === 0) {
-                  resolveEvents(0);
-                  return;
-                }
+            // Insert or update events in database
+            return new Promise<number>((resolveEvents, rejectEvents) => {
+              if (events.length === 0) {
+                resolveEvents(0);
+                return;
+              }
 
-                const stmt = db.prepare(`
-                  INSERT INTO events (id, calendar_id, title, description, start_time, end_time, all_day, location, updated_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                `);
+              // Use INSERT OR REPLACE to handle both new and updated events
+              const stmt = db.prepare(`
+                INSERT OR REPLACE INTO events (id, calendar_id, title, description, start_time, end_time, all_day, location, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+              `);
 
-                let insertedCount = 0;
-                events.forEach(event => {
-                  stmt.run([
-                    event.id,
-                    event.calendar_id,
-                    event.title,
-                    event.description,
-                    event.start_time,
-                    event.end_time,
-                    event.all_day ? 1 : 0,
-                    event.location
-                  ], function(insertErr) {
-                    if (insertErr) {
-                      console.error(`❌ Error inserting event ${event.title}:`, insertErr);
-                    } else {
-                      insertedCount++;
-                    }
-                  });
-                });
-
-                stmt.finalize((finalizeErr) => {
-                  if (finalizeErr) {
-                    rejectEvents(finalizeErr);
+              let syncedCount = 0;
+              events.forEach(event => {
+                stmt.run([
+                  event.id,
+                  event.calendar_id,
+                  event.title,
+                  event.description,
+                  event.start_time,
+                  event.end_time,
+                  event.all_day ? 1 : 0,
+                  event.location
+                ], function(insertErr) {
+                  if (insertErr) {
+                    console.error(`❌ Error syncing event ${event.title}:`, insertErr);
                   } else {
-                    console.log(`✅ Synced ${insertedCount} events for calendar: ${calendar.name}`);
-                    resolveEvents(insertedCount);
+                    syncedCount++;
                   }
                 });
               });
-            } catch (error: any) {
-              console.error(`❌ Error syncing calendar ${calendar.name}:`, error);
-              errors.push(`Failed to sync calendar "${calendar.name}": ${error.message}`);
-              return 0;
-            }
-          });
 
-          Promise.all(syncPromises)
-            .then(eventCounts => {
-              totalEvents = eventCounts.reduce((sum, count) => sum + count, 0);
-              resolve({
-                calendars: calendars.length,
-                events: totalEvents,
-                errors
+              stmt.finalize((finalizeErr) => {
+                if (finalizeErr) {
+                  rejectEvents(finalizeErr);
+                } else {
+                  console.log(`✅ Synced ${syncedCount} events for calendar: ${calendar.name}`);
+                  resolveEvents(syncedCount);
+                }
               });
-            })
-            .catch(syncError => {
-              reject(syncError);
             });
+          } catch (error: any) {
+            console.error(`❌ Error syncing calendar ${calendar.name}:`, error);
+            errors.push(`Failed to sync calendar "${calendar.name}": ${error.message}`);
+            return 0;
+          }
         });
+
+        Promise.all(syncPromises)
+          .then(eventCounts => {
+            totalEvents = eventCounts.reduce((sum, count) => sum + count, 0);
+            resolve({
+              calendars: calendars.length,
+              events: totalEvents,
+              errors
+            });
+          })
+          .catch(syncError => {
+            reject(syncError);
+          });
       });
     });
   }

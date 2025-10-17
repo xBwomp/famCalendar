@@ -1,6 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { db } from '../database/init';
+import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 
 // Configure Google OAuth2 strategy
 passport.use(new GoogleStrategy({
@@ -20,11 +21,12 @@ passport.use(new GoogleStrategy({
 
 
     // Store tokens in admin_settings for later use
-    const storeToken = (key: string, value: string) => {
+    const storeToken = (key: string, value: string, shouldEncrypt: boolean = false) => {
       return new Promise<void>((resolve, reject) => {
+        const valueToStore = shouldEncrypt ? encrypt(value) : value;
         db.run(
           'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
-          [key, value],
+          [key, valueToStore],
           (err) => {
             if (err) reject(err);
             else resolve();
@@ -33,10 +35,10 @@ passport.use(new GoogleStrategy({
       });
     };
 
-    // Store access token and refresh token
-    await storeToken('google_access_token', accessToken);
+    // Store access token and refresh token (encrypted)
+    await storeToken('google_access_token', accessToken, true);
     if (refreshToken) {
-      await storeToken('google_refresh_token', refreshToken);
+      await storeToken('google_refresh_token', refreshToken, true);
     }
     await storeToken('admin_user_id', user.id);
     await storeToken('admin_user_email', user.email);
@@ -84,13 +86,29 @@ passport.deserializeUser((id: string, done) => {
       userSettings[row.key] = row.value;
     });
 
+    // Decrypt tokens if they are encrypted
+    let accessToken = userSettings.google_access_token;
+    let refreshToken = userSettings.google_refresh_token;
+
+    try {
+      if (accessToken && isEncrypted(accessToken)) {
+        accessToken = decrypt(accessToken);
+      }
+      if (refreshToken && isEncrypted(refreshToken)) {
+        refreshToken = decrypt(refreshToken);
+      }
+    } catch (error) {
+      console.error('Error decrypting tokens:', error);
+      return done(new Error('Failed to decrypt authentication tokens'), null);
+    }
+
     const user: Express.User = {
       id: userSettings.admin_user_id,
       email: userSettings.admin_user_email,
       name: userSettings.admin_user_name,
       picture: userSettings.admin_user_picture || undefined,
-      accessToken: userSettings.google_access_token,
-      refreshToken: userSettings.google_refresh_token || undefined
+      accessToken: accessToken,
+      refreshToken: refreshToken || undefined
     };
 
     done(null, user);

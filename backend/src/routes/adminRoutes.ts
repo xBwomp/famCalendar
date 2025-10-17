@@ -45,14 +45,6 @@ router.put('/settings', requireAuthAPI, (req: Request, res: Response) => {
     return res.status(400).json(response);
   }
 
-  // Prepare statements for batch update
-  const stmt = db.prepare(`
-    INSERT OR REPLACE INTO admin_settings (key, value, updated_at)
-    VALUES (?, ?, CURRENT_TIMESTAMP)
-  `);
-
-  let completed = 0;
-  let hasError = false;
   const settingsKeys = Object.keys(settings);
 
   if (settingsKeys.length === 0) {
@@ -63,42 +55,49 @@ router.put('/settings', requireAuthAPI, (req: Request, res: Response) => {
     return res.status(400).json(response);
   }
 
-  settingsKeys.forEach(key => {
-    // Skip sensitive keys that shouldn't be updated via this endpoint
-    if (key.includes('token') || key.includes('secret') || key.includes('admin_user')) {
-      completed++;
-      if (completed === settingsKeys.length && !hasError) {
-        const response: ApiResponse = {
-          success: true,
-          message: 'Settings updated successfully'
-        };
-        return res.json(response);
-      }
-      return;
-    }
+  // Filter out sensitive keys
+  const validKeys = settingsKeys.filter(key =>
+    !key.includes('token') && !key.includes('secret') && !key.includes('admin_user')
+  );
 
-    stmt.run([key, settings[key]], (err) => {
-      if (err && !hasError) {
-        hasError = true;
-        const response: ApiResponse = {
-          success: false,
-          error: 'Failed to update settings'
-        };
-        return res.status(500).json(response);
-      }
+  if (validKeys.length === 0) {
+    const response: ApiResponse = {
+      success: true,
+      message: 'No valid settings to update'
+    };
+    return res.json(response);
+  }
 
-      completed++;
-      if (completed === settingsKeys.length && !hasError) {
-        const response: ApiResponse = {
-          success: true,
-          message: 'Settings updated successfully'
-        };
-        return res.json(response);
-      }
+  // Use Promise.all to handle all updates
+  const updatePromises = validKeys.map(key => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+        [key, settings[key]],
+        (err) => {
+          if (err) reject(err);
+          else resolve(true);
+        }
+      );
     });
   });
 
-  stmt.finalize();
+  Promise.all(updatePromises)
+    .then(() => {
+      const response: ApiResponse = {
+        success: true,
+        message: 'Settings updated successfully'
+      };
+      res.json(response);
+    })
+    .catch(err => {
+      console.error('Error updating settings:', err);
+      const response: ApiResponse = {
+        success: false,
+        error: 'Failed to update settings'
+      };
+      res.status(500).json(response);
+    });
 });
 
 // GET /admin/display-preferences - Get display preferences
@@ -158,40 +157,49 @@ router.put('/display-preferences', requireAuthAPI, (req: Request, res: Response)
     return res.status(400).json(response);
   }
 
-  const stmt = db.prepare(`
-    INSERT OR REPLACE INTO admin_settings (key, value, updated_at)
-    VALUES (?, ?, CURRENT_TIMESTAMP)
-  `);
-
   const updates = Object.entries(preferences);
-  let completed = 0;
-  let hasError = false;
 
-  updates.forEach(([key, value]) => {
-    stmt.run([key, String(value)], (err) => {
-      if (err && !hasError) {
-        hasError = true;
-        console.error('Error updating preference:', key, err);
-        const response: ApiResponse = {
-          success: false,
-          error: 'Failed to update display preferences'
-        };
-        res.status(500).json(response);
-        return;
-      }
+  if (updates.length === 0) {
+    const response: ApiResponse = {
+      success: false,
+      error: 'No preferences provided'
+    };
+    return res.status(400).json(response);
+  }
 
-      completed++;
-      if (completed === updates.length && !hasError) {
-        const response: ApiResponse = {
-          success: true,
-          message: 'Display preferences updated successfully'
-        };
-        res.json(response);
-      }
+  // Use Promise.all to handle all updates
+  const updatePromises = updates.map(([key, value]) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+        [key, String(value)],
+        (err) => {
+          if (err) {
+            console.error('Error updating preference:', key, err);
+            reject(err);
+          } else {
+            resolve(true);
+          }
+        }
+      );
     });
   });
 
-  stmt.finalize();
+  Promise.all(updatePromises)
+    .then(() => {
+      const response: ApiResponse = {
+        success: true,
+        message: 'Display preferences updated successfully'
+      };
+      res.json(response);
+    })
+    .catch(err => {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Failed to update display preferences'
+      };
+      res.status(500).json(response);
+    });
 });
 
 router.get('/last-sync-time', requireAuthAPI, (req: Request, res: Response) => {

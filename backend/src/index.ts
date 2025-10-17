@@ -22,13 +22,39 @@ const app = express();
 const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
+// Validate required environment variables
+if (!process.env.SESSION_SECRET) {
+  console.error('❌ FATAL: SESSION_SECRET environment variable is required');
+  console.error('Please set SESSION_SECRET in your .env file to a secure random string');
+  console.error('Example: SESSION_SECRET=your-super-secret-random-string-here');
+  process.exit(1);
+}
+
+if (!process.env.ENCRYPTION_KEY) {
+  console.error('❌ FATAL: ENCRYPTION_KEY environment variable is required');
+  console.error('This key is used to encrypt sensitive tokens in the database');
+  console.error('Please set ENCRYPTION_KEY in your .env file to a secure random string (minimum 32 characters)');
+  console.error('Example: ENCRYPTION_KEY=your-super-secret-encryption-key-at-least-32-chars');
+  process.exit(1);
+}
+
+// Parse CORS origins from environment variable
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:5173', 'http://localhost:3001']; // Default for development
+
+console.log('🔒 CORS allowed origins:', allowedOrigins);
+
 // Middleware
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3001', 'http://192.168.1.123:5173', 'http://192.168.1.123:3001'], credentials: true }));
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json());
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {

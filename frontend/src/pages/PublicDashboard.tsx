@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, RefreshCw, Settings, ChevronLeft, ChevronRight, Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { eventApi, calendarApi, CalendarEvent, Calendar as CalendarType } from '../api';
 
@@ -6,9 +6,6 @@ import { useTheme } from '../context/ThemeContext';
 
 const PublicDashboard: React.FC = () => {
   const { theme } = useTheme();
-
-  console.log('Rendering PublicDashboard');
-
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
@@ -34,17 +31,7 @@ const PublicDashboard: React.FC = () => {
 
   const [simpleDate, setSimpleDate] = useState<string>(formatLocalDateISO(new Date()));
 
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const fetchData = React.useCallback(async () => {
-    console.log('Fetching data');
     setLoading(true);
     setError(null);
     
@@ -73,7 +60,6 @@ const PublicDashboard: React.FC = () => {
 
       if (eventsResponse.success && eventsResponse.data) {
         setEvents(eventsResponse.data);
-        console.log('Fetched events:', eventsResponse.data);
       } else {
         setError(eventsResponse.error || 'Failed to fetch events');
       }
@@ -88,7 +74,6 @@ const PublicDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    console.log('PublicDashboard useEffect');
     fetchData();
     
     // Auto-refresh every 5 minutes
@@ -165,25 +150,21 @@ const PublicDashboard: React.FC = () => {
     return new Date(0);
   };
 
-  // Precompute parsed event times for sorting
-  const parsedEvents = events.map(event => ({
-    ...event,
-    parsedStartTime: parseEventDateTime(event.start_time),
-    parsedEndTime: parseEventDateTime(event.end_time),
-  }));
+  // Memoize parsed and sorted events to avoid re-parsing on every render
+  const parsedEvents = useMemo(() => {
+    const parsed = events.map(event => ({
+      ...event,
+      parsedStartTime: parseEventDateTime(event.start_time),
+      parsedEndTime: parseEventDateTime(event.end_time),
+    }));
 
-  // Sort events by parsed start time
-  parsedEvents.sort((a, b) => a.parsedStartTime.getTime() - b.parsedStartTime.getTime());
+    // Sort by parsed start time
+    parsed.sort((a, b) => a.parsedStartTime.getTime() - b.parsedStartTime.getTime());
 
-  console.log('parsedEvents', parsedEvents);
-  console.log('simpleDate', simpleDate);
-  console.log('filtered events', parsedEvents.filter(event => {
-    const eventDate = event.parsedStartTime.toISOString().split('T')[0];
-    return eventDate === simpleDate;
-  }));
+    return parsed;
+  }, [events]);
 
   if (loading) {
-    console.log('Rendering loading state');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -194,7 +175,6 @@ const PublicDashboard: React.FC = () => {
     );
   }
 
-  console.log('Rendering dashboard');
   return (
     <div className="public-dashboard min-h-screen">
       {/* Header */}
@@ -333,7 +313,7 @@ const PublicDashboard: React.FC = () => {
                         <div className="flex items-center text-sm text-gray-500 mt-1">
                           <Clock className="w-4 h-4 mr-2" />
                           <span>
-                            {event.is_all_day
+                            {event.all_day
                               ? 'All Day'
                               : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`}
                           </span>
