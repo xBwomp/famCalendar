@@ -1,8 +1,8 @@
 .halloween-theme {
-  --background-color: #000000;
-  --background-color-dark: #FF7900;
-  --text-color: #FFFFFF;
-  --card-text-color: #000000;
-  --primary-color: #000000;
-  --secondary-color: #270050;
+  --background-color: #1F1F2E;
+  --background-color-dark: #2A2A3E;
+  --text-color: #F3F4F6;
+  --card-text-color: #1F1F2E;
+  --primary-color: #FF8C42;
+  --secondary-color: #7C3AED;
 }

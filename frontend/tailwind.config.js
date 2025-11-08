@@ -4,15 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#3B82F6',
-        secondary: '#6366F1',
-        accent: '#F59E0B',
+        primary: '#6366F1',
+        secondary: '#8B5CF6',
+        accent: '#EC4899',
         neutral: '#6B7280',
         base: '#F9FAFB',
-        info: '#38BDF8',
-        success: '#34D399',
-        warning: '#FBBF24',
-        error: '#F87171',
+        info: '#06B6D4',
+        success: '#10B981',
+        warning: '#F59E0B',
+        error: '#EF4444',
       },
       spacing: {
         '128': '32rem',

@@ -1,8 +1,8 @@
 .christmas-theme {
-  --background-color: #FFFFFF;
-  --background-color-dark: #E0E0E0;
-  --text-color: #000000;
-  --card-text-color: #000000;
-  --primary-color: #DC3545;
-  --secondary-color: #28A745;
+  --background-color: #F8FAFC;
+  --background-color-dark: #F1F5F9;
+  --text-color: #1E293B;
+  --card-text-color: #1E293B;
+  --primary-color: #DC2626;
+  --secondary-color: #16A34A;
 }

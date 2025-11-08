@@ -4,12 +4,12 @@
 @import url('./newYears.css');
 
 .default-theme {
-  --background-color: #FFFFFF;
-  --background-color-dark: #E2E2E2;
-  --text-color: #000000;
-  --card-text-color: #000000;
-  --primary-color: #007BFF;
-  --secondary-color: #6C757D;
+  --background-color: #F9FAFB;
+  --background-color-dark: #F3F4F6;
+  --text-color: #1F2937;
+  --card-text-color: #1F2937;
+  --primary-color: #6366F1;
+  --secondary-color: #8B5CF6;
 }
 
   .public-dashboard {

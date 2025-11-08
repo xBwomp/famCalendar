@@ -208,7 +208,7 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <RefreshCw className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading admin dashboard...</p>
         </div>
       </div>
@@ -218,11 +218,11 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b border-indigo-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Settings className="w-8 h-8 text-blue-600" />
+              <Settings className="w-8 h-8 text-indigo-600" />
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
               {lastSyncTime && (
                 <div className="text-sm text-gray-500 ml-4">
@@ -236,7 +236,7 @@ const AdminDashboard: React.FC = () => {
               <div className="hidden sm:flex items-center space-x-2 mr-4">
                 <a
                   href="/"
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center px-3 py-2 border border-indigo-300 rounded-md text-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium"
                 >
                   <Home className="w-4 h-4 mr-1" />
                   Home
@@ -262,7 +262,7 @@ const AdminDashboard: React.FC = () => {
               
               <button
                 onClick={logout}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors font-medium"
               >
                 <LogOut className="w-4 h-4 mr-1" />
                 Logout
@@ -274,16 +274,16 @@ const AdminDashboard: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-red-800">{error}</p>
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 shadow-sm">
+            <p className="text-red-800 font-medium">{error}</p>
           </div>
         )}
 
         {/* Sync Status */}
         {syncStatus && (
-          <div className={`mb-6 p-4 rounded-md border ${
-            syncStatus.success 
-              ? 'bg-green-50 border-green-200 text-green-800' 
+          <div className={`mb-6 p-4 rounded-lg border shadow-sm font-medium ${
+            syncStatus.success
+              ? 'bg-green-50 border-green-200 text-green-800'
               : 'bg-red-50 border-red-200 text-red-800'
           }`}>
             <div className="flex items-center">
@@ -300,7 +300,7 @@ const AdminDashboard: React.FC = () => {
         {/* Google Calendar Sync */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Google Calendar Sync</h2>
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white rounded-lg border border-indigo-100 p-6 shadow-sm hover:shadow-md transition-shadow">
             <p className="text-sm text-gray-600 mb-4">
               Sync your Google Calendar data to display events on the public dashboard.
             </p>
@@ -309,7 +309,7 @@ const AdminDashboard: React.FC = () => {
               <button
                 onClick={testGoogleConnection}
                 disabled={actionLoading === 'test-connection'}
-                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
               >
                 {actionLoading === 'test-connection' ? (
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -318,11 +318,11 @@ const AdminDashboard: React.FC = () => {
                 )}
                 Test Connection
               </button>
-              
+
               <button
                 onClick={syncCalendars}
                 disabled={actionLoading === 'sync-calendars'}
-                className="inline-flex items-center justify-center px-4 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-indigo-300 rounded-lg text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
               >
                 {actionLoading === 'sync-calendars' ? (
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -331,11 +331,11 @@ const AdminDashboard: React.FC = () => {
                 )}
                 Sync Calendars
               </button>
-              
+
               <button
                 onClick={syncEvents}
                 disabled={actionLoading === 'sync-events'}
-                className="inline-flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
               >
                 {actionLoading === 'sync-events' ? (
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -344,11 +344,11 @@ const AdminDashboard: React.FC = () => {
                 )}
                 Sync Events
               </button>
-              
+
               <button
                 onClick={fullSync}
                 disabled={actionLoading === 'full-sync'}
-                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
               >
                 {actionLoading === 'full-sync' ? (
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -368,7 +368,7 @@ const AdminDashboard: React.FC = () => {
             <button
               onClick={createSampleData}
               disabled={actionLoading === 'sample-data'}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
             >
               {actionLoading === 'sample-data' ? (
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -377,11 +377,11 @@ const AdminDashboard: React.FC = () => {
               )}
               Create Sample Data
             </button>
-            
+
             <button
               onClick={clearData}
               disabled={actionLoading === 'clear-data'}
-              className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center px-4 py-2 border border-red-300 rounded-lg text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
             >
               {actionLoading === 'clear-data' ? (
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -390,10 +390,10 @@ const AdminDashboard: React.FC = () => {
               )}
               Clear All Data
             </button>
-            
+
             <button
               onClick={fetchCalendars}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
@@ -404,16 +404,16 @@ const AdminDashboard: React.FC = () => {
         {/* Calendar Management */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Calendar Management</h2>
-          
+
           {calendars.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <div className="text-center py-12 bg-white rounded-lg border border-indigo-100 shadow-sm">
               <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No calendars found</h3>
               <p className="text-gray-500 mb-4">Create some sample data to get started.</p>
               <button
                 onClick={createSampleData}
                 disabled={actionLoading === 'sample-data'}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
               >
                 {actionLoading === 'sample-data' ? (
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -424,7 +424,7 @@ const AdminDashboard: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-lg border border-indigo-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">
                   Calendars ({calendars.length})

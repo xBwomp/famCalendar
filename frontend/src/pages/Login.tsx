@@ -6,17 +6,17 @@ const Login: React.FC = () => {
   const { login } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center">
             <div className="flex items-center space-x-2">
-              <Calendar className="w-12 h-12 text-blue-600" />
-              <Shield className="w-8 h-8 text-gray-400" />
+              <Calendar className="w-12 h-12 text-indigo-600" />
+              <Shield className="w-8 h-8 text-purple-500" />
             </div>
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Admin Access Required
+          <h2 className="mt-6 text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            Family Calendar
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in with your Google account to access the admin dashboard
@@ -24,23 +24,23 @@ const Login: React.FC = () => {
         </div>
 
         <div className="mt-8 space-y-6">
-          <div className="bg-white py-8 px-6 shadow-sm rounded-lg border border-gray-200">
+          <div className="bg-white py-8 px-6 shadow-lg rounded-lg border border-indigo-100 hover:shadow-xl transition-shadow">
             <div className="space-y-4">
               <div className="text-center">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Administrator Login
                 </h3>
-                <p className="text-sm text-gray-500 mb-6">
+                <p className="text-sm text-gray-600 mb-6">
                   Access calendar management, settings, and Google Calendar integration
                 </p>
               </div>
 
               <button
                 onClick={login}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all shadow-md hover:shadow-lg"
               >
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                  <svg className="h-5 w-5 text-blue-500 group-hover:text-blue-400" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-indigo-300 group-hover:text-indigo-200" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                     <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -54,7 +54,7 @@ const Login: React.FC = () => {
               <div className="mt-6 text-center">
                 <a
                   href="/"
-                  className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
+                  className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors font-medium"
                 >
                   ← Back to Public Calendar
                 </a>
