@@ -19,5 +19,9 @@
     "dashboard"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "diff": "^8.0.3",
+    "tar": "^7.5.3"
+  }
 }
