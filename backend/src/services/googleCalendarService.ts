@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { db } from '../database/init';
 import { Calendar, CalendarEvent } from '../../../shared/types';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
+import { DatabaseError, ApiError } from '../utils/errorHandler';
 
 export class GoogleCalendarService {
   private oauth2Client: any;
@@ -37,51 +38,67 @@ export class GoogleCalendarService {
 
   // Set access token from stored credentials
   async setCredentials(): Promise<boolean> {
-    return new Promise((resolve) => {
-      db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_access_token'], (err, row: any) => {
-        if (err || !row) {
-          console.error('❌ No Google access token found');
-          resolve(false);
-          return;
-        }
-
-        // Get refresh token as well
-        db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_refresh_token'], (refreshErr, refreshRow: any) => {
-          try {
-            // Decrypt tokens if they are encrypted
-            let accessToken = row.value;
-            let refreshToken = refreshRow?.value;
-
-            if (accessToken && isEncrypted(accessToken)) {
-              accessToken = decrypt(accessToken);
-            }
-            if (refreshToken && isEncrypted(refreshToken)) {
-              refreshToken = decrypt(refreshToken);
-            }
-
-            this.oauth2Client.setCredentials({
-              access_token: accessToken,
-              refresh_token: refreshToken
-            });
-
-            // Set up automatic token refresh
-            this.oauth2Client.on('tokens', (tokens: any) => {
-              if (tokens.access_token) {
-                this.storeToken('google_access_token', tokens.access_token);
-              }
-              if (tokens.refresh_token) {
-                this.storeToken('google_refresh_token', tokens.refresh_token);
-              }
-            });
-
-            resolve(true);
-          } catch (decryptError) {
-            console.error('❌ Error decrypting tokens:', decryptError);
-            resolve(false);
+    try {
+      const accessTokenRow = await new Promise<any>((resolve, reject) => {
+        db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_access_token'], (err, row: any) => {
+          if (err) {
+            console.error('❌ Database error fetching access token:', err);
+            reject(new DatabaseError('Failed to fetch Google access token', err));
           }
+          resolve(row);
         });
       });
-    });
+
+      if (!accessTokenRow) {
+        console.error('❌ No Google access token found');
+        return false;
+      }
+
+      // Get refresh token as well
+      const refreshTokenRow = await new Promise<any>((resolve, reject) => {
+        db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_refresh_token'], (refreshErr, refreshRow: any) => {
+          if (refreshErr) {
+            console.error('❌ Database error fetching refresh token:', refreshErr);
+            reject(new DatabaseError('Failed to fetch Google refresh token', refreshErr));
+          }
+          resolve(refreshRow);
+        });
+      });
+
+      // Decrypt tokens if they are encrypted
+      let accessToken = accessTokenRow.value;
+      let refreshToken = refreshTokenRow?.value;
+
+      if (accessToken && isEncrypted(accessToken)) {
+        accessToken = decrypt(accessToken);
+      }
+      if (refreshToken && isEncrypted(refreshToken)) {
+        refreshToken = decrypt(refreshToken);
+      }
+
+      this.oauth2Client.setCredentials({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+
+      // Set up automatic token refresh
+      this.oauth2Client.on('tokens', (tokens: any) => {
+        if (tokens.access_token) {
+          this.storeToken('google_access_token', tokens.access_token);
+        }
+        if (tokens.refresh_token) {
+          this.storeToken('google_refresh_token', tokens.refresh_token);
+        }
+      });
+
+      return true;
+    } catch (error) {
+      if (error instanceof DatabaseError) {
+        throw error; // Re-throw database errors
+      }
+      console.error('❌ Error decrypting tokens:', error);
+      return false;
+    }
   }
 
   // Check for credentials and stop polling once found
@@ -175,20 +192,25 @@ export class GoogleCalendarService {
   }
 
   // Store token in database (encrypted)
-  private storeToken(key: string, value: string): void {
+  private async storeToken(key: string, value: string): Promise<void> {
     try {
       const encryptedValue = encrypt(value);
-      db.run(
-        'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
-        [key, encryptedValue],
-        (err) => {
-          if (err) {
-            console.error(`❌ Error storing ${key}:`, err);
+      await new Promise<void>((resolve, reject) => {
+        db.run(
+          'INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+          [key, encryptedValue],
+          (err) => {
+            if (err) {
+              console.error(`❌ Error storing ${key}:`, err);
+              reject(new DatabaseError(`Failed to store ${key}`, err));
+            }
+            resolve();
           }
-        }
-      );
+        );
+      });
     } catch (encryptError) {
       console.error(`❌ Error encrypting ${key}:`, encryptError);
+      throw new ApiError(`Failed to encrypt ${key}`, 500, true, encryptError);
     }
   }
 

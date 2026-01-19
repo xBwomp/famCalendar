@@ -1,122 +1,53 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../database/init';
 import { Calendar, ApiResponse } from '../../../shared/types';
+import { CalendarSchema } from '../middleware/validation';
+import { z } from 'zod';
+import { handleAsync, apiResponse, DatabaseError, NotFoundError, ValidationError } from '../utils/errorHandler';
+import { SQLiteCalendarRepository, ICalendarRepository } from '../repositories/calendarRepository';
 
 const router = Router();
 
+// Initialize repository
+const calendarRepository: ICalendarRepository = new SQLiteCalendarRepository();
+
 // GET /api/calendars - Retrieve all calendars
-router.get('/', (req: Request, res: Response): void => {
-  const query = 'SELECT * FROM calendars ORDER BY name';
-  db.all(query, [], (err, rows: Calendar[]) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'DB error' });
-    }
-    return res.json({ success: true, data: rows });
-  });
-});
+router.get('/', handleAsync(async (req: Request, res: Response) => {
+  const calendars = await calendarRepository.getAllCalendars();
+  apiResponse.success(res, calendars);
+}));
 
 // GET /api/calendars/selected - Retrieve only selected calendars
-router.get('/selected', (req: Request, res: Response): void => {
-  const query = 'SELECT * FROM calendars WHERE selected = 1 ORDER BY name ASC';
-  
-  db.all(query, [], (err, rows: Calendar[]) => {
-    if (err) {
-      console.error('Error fetching selected calendars:', err);
-      const response: ApiResponse = {
-        success: false,
-        error: 'Failed to fetch selected calendars'
-      };
-      return res.status(500).json(response);
-    }
-
-    const response: ApiResponse<Calendar[]> = {
-      success: true,
-      data: rows,
-      message: `Retrieved ${rows.length} selected calendars`
-    };
-    return res.json(response);
-  });
-});
+router.get('/selected', handleAsync(async (req: Request, res: Response) => {
+  const calendars = await calendarRepository.getSelectedCalendars();
+  apiResponse.success(res, calendars, `Retrieved ${calendars.length} selected calendars`);
+}));
 
 // POST /api/calendars - Create a new calendar (for testing/seeding)
-router.post('/', (req: Request, res: Response) => {
-  const { id, name, description, color, selected } = req.body;
+router.post('/', handleAsync(async (req: Request, res: Response) => {
+  // Validate request body
+  const validatedData = CalendarSchema.parse(req.body);
+  
+  const calendarData: Omit<Calendar, 'created_at' | 'updated_at'> = {
+    id: validatedData.id,
+    name: validatedData.name,
+    description: validatedData.description || undefined,
+    color: validatedData.color || '#3B82F6',
+    selected: validatedData.selected || false
+  };
 
-  if (!id || !name) {
-    const response: ApiResponse = {
-      success: false,
-      error: 'Calendar ID and name are required'
-    };
-    return res.status(400).json(response);
-  }
-
-  const query = `
-    INSERT INTO calendars (id, name, description, color, selected, updated_at)
-    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `;
-
-  const params = [
-    id,
-    name,
-    description || null,
-    color || '#3B82F6',
-    selected ? 1 : 0
-  ];
-
-  db.run(query, params, function(err) {
-    if (err) {
-      console.error('Error creating calendar:', err);
-      const response: ApiResponse = {
-        success: false,
-        error: 'Failed to create calendar'
-      };
-      return res.status(500).json(response);
-    }
-
-    const response: ApiResponse = {
-      success: true,
-      message: `Calendar "${name}" created successfully`,
-      data: { id, insertedId: this.lastID }
-    };
-    return res.status(201).json(response);
-  });
-});
+  const createdCalendar = await calendarRepository.createCalendar(calendarData);
+  
+  apiResponse.created(res, { id: createdCalendar.id }, `Calendar "${createdCalendar.name}" created successfully`);
+}));
 
 // PUT /api/calendars/:id/toggle - Toggle calendar selection
-router.put('/:id/toggle', (req: Request, res: Response) => {
+router.put('/:id/toggle', handleAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
+  const calendarId = Array.isArray(id) ? id[0] : id;
 
-  const query = `
-    UPDATE calendars 
-    SET selected = CASE WHEN selected = 1 THEN 0 ELSE 1 END,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `;
-
-  db.run(query, [id], function(err) {
-    if (err) {
-      console.error('Error toggling calendar selection:', err);
-      const response: ApiResponse = {
-        success: false,
-        error: 'Failed to toggle calendar selection'
-      };
-      return res.status(500).json(response);
-    }
-
-    if (this.changes === 0) {
-      const response: ApiResponse = {
-        success: false,
-        error: 'Calendar not found'
-      };
-      return res.status(404).json(response);
-    }
-
-    const response: ApiResponse = {
-      success: true,
-      message: 'Calendar selection toggled successfully'
-    };
-    return res.json(response);
-  });
-});
+  await calendarRepository.toggleCalendarSelection(calendarId);
+  
+  apiResponse.success(res, null, 'Calendar selection toggled successfully');
+}));
 
 export default router;

@@ -1,11 +1,17 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../database/init';
 import { ApiResponse } from '../../../shared/types';
+import { handleAsync, apiResponse, DatabaseError } from '../utils/errorHandler';
+import { SQLiteCalendarRepository, ICalendarRepository } from '../repositories/calendarRepository';
+import { SQLiteEventRepository, IEventRepository } from '../repositories/eventRepository';
 
 const router = Router();
 
+// Initialize repositories
+const calendarRepository: ICalendarRepository = new SQLiteCalendarRepository();
+const eventRepository: IEventRepository = new SQLiteEventRepository();
+
 // POST /api/seed/sample-data - Create sample calendars and events for testing
-router.post('/sample-data', (req: Request, res: Response) => {
+router.post('/sample-data', handleAsync(async (req: Request, res: Response) => {
   const sampleCalendars = [
     {
       id: 'family-calendar',
@@ -74,93 +80,40 @@ router.post('/sample-data', (req: Request, res: Response) => {
   ];
 
   // Clear existing data
-  db.serialize(() => {
-    db.run('DELETE FROM events');
-    db.run('DELETE FROM calendars');
+  for (const calendar of await calendarRepository.getAllCalendars()) {
+    await eventRepository.deleteEventsByCalendarId(calendar.id);
+    await calendarRepository.deleteCalendar(calendar.id);
+  }
 
-    // Insert sample calendars
-    const calendarStmt = db.prepare(`
-      INSERT INTO calendars (id, name, description, color, selected, updated_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
+  // Insert sample calendars
+  for (const calendar of sampleCalendars) {
+    await calendarRepository.createCalendar(calendar);
+  }
 
-    sampleCalendars.forEach(calendar => {
-      calendarStmt.run([
-        calendar.id,
-        calendar.name,
-        calendar.description,
-        calendar.color,
-        calendar.selected ? 1 : 0
-      ]);
-    });
-
-    calendarStmt.finalize();
-
-    // Insert sample events
-    const eventStmt = db.prepare(`
-      INSERT INTO events (id, calendar_id, title, description, start_time, end_time, all_day, location, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-
-    sampleEvents.forEach(event => {
-      eventStmt.run([
-        event.id,
-        event.calendar_id,
-        event.title,
-        event.description,
-        event.start_time,
-        event.end_time,
-        event.all_day ? 1 : 0,
-        event.location
-      ]);
-    });
-
-    eventStmt.finalize((err) => {
-      if (err) {
-        console.error('Error seeding sample data:', err);
-        const response: ApiResponse = {
-          success: false,
-          error: 'Failed to seed sample data'
-        };
-        return res.status(500).json(response);
-      }
-
-      const response: ApiResponse = {
-        success: true,
-        message: `Successfully seeded ${sampleCalendars.length} calendars and ${sampleEvents.length} events`,
-        data: {
-          calendars: sampleCalendars.length,
-          events: sampleEvents.length
-        }
-      };
-      res.json(response);
-      return; // Explicit return after sending response
-    });
-  });
-});
+  // Insert sample events
+  for (const event of sampleEvents) {
+    await eventRepository.createEvent(event);
+  }
+  
+  apiResponse.success(res, {
+    calendars: sampleCalendars.length,
+    events: sampleEvents.length
+  }, `Successfully seeded ${sampleCalendars.length} calendars and ${sampleEvents.length} events`);
+}));
 
 // DELETE /api/seed/clear-data - Clear all calendars and events
-router.delete('/clear-data', (req: Request, res: Response) => {
-  db.serialize(() => {
-    db.run('DELETE FROM events');
-    db.run('DELETE FROM calendars', (err) => {
-      if (err) {
-        console.error('Error clearing data:', err);
-        const response: ApiResponse = {
-          success: false,
-          error: 'Failed to clear data'
-        };
-        return res.status(500).json(response);
-      }
+router.delete('/clear-data', handleAsync(async (req: Request, res: Response) => {
+  // Clear all events first
+  for (const calendar of await calendarRepository.getAllCalendars()) {
+    await eventRepository.deleteEventsByCalendarId(calendar.id);
+  }
 
-      const response: ApiResponse = {
-        success: true,
-        message: 'All calendars and events cleared successfully'
-      };
-      res.json(response);
-      return; // Explicit return after sending response
-    });
-  });
-});
+  // Then clear all calendars
+  for (const calendar of await calendarRepository.getAllCalendars()) {
+    await calendarRepository.deleteCalendar(calendar.id);
+  }
+  
+  apiResponse.success(res, null, 'All calendars and events cleared successfully');
+}));
 
 export default router;

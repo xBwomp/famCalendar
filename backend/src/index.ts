@@ -52,6 +52,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Rate limiting middleware
+import { authRateLimit, apiRateLimit, sensitiveApiRateLimit } from './middleware/rateLimiter';
+
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -69,12 +72,12 @@ app.use(passport.session());
 
 // API Routes
 console.log('Registering auth routes');
-app.use('/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/calendars', calendarRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/seed', seedRoutes);
-app.use('/api/sync', syncRoutes);
+app.use('/auth', authRateLimit, authRoutes);
+app.use('/api/admin', sensitiveApiRateLimit, adminRoutes);
+app.use('/api/calendars', apiRateLimit, calendarRoutes);
+app.use('/api/events', apiRateLimit, eventRoutes);
+app.use('/api/seed', apiRateLimit, seedRoutes);
+app.use('/api/sync', apiRateLimit, syncRoutes);
 
 // Serve static files from frontend build
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
