@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import logger from './logger';
 
 /**
  * Base API error class for operational errors
@@ -82,9 +83,9 @@ export const handleAsync = (fn: Function) => {
     } catch (error) {
       if (error instanceof ApiError) {
         // Handle known API errors
-        console.error(`🔴 ${error.name}: ${error.message}`);
+        logger.error(`🔴 ${error.name}: ${error.message}`);
         if (error.details) {
-          console.error('Details:', error.details);
+          logger.error('Details:', error.details);
         }
         
         return res.status(error.statusCode).json({
@@ -104,7 +105,7 @@ export const handleAsync = (fn: Function) => {
           }))
         });
         
-        console.error('🔴 Validation Error:', validationError);
+        logger.error('🔴 Validation Error:', validationError);
         return res.status(validationError.statusCode).json({
           success: false,
           error: validationError.message,
@@ -113,7 +114,7 @@ export const handleAsync = (fn: Function) => {
       }
 
       // Handle all other unexpected errors
-      console.error('❌ Unexpected error:', error);
+      logger.error('❌ Unexpected error:', error);
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       

@@ -1,6 +1,7 @@
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../../shared/types';
+import logger from '../utils/logger';
 
 // Create rate limiters for different types of requests
 const authRateLimiter = new RateLimiterMemory({
@@ -37,7 +38,7 @@ export const authRateLimit = async (req: Request, res: Response, next: NextFunct
     await authRateLimiter.consume(key);
     next();
   } catch (error) {
-    console.error('Rate limiting error:', error);
+    logger.error('Rate limiting error:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Internal server error'
@@ -65,7 +66,7 @@ export const apiRateLimit = async (req: Request, res: Response, next: NextFuncti
     await apiRateLimiter.consume(key);
     next();
   } catch (error) {
-    console.error('Rate limiting error:', error);
+    logger.error('Rate limiting error:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Internal server error'
@@ -93,7 +94,7 @@ export const sensitiveApiRateLimit = async (req: Request, res: Response, next: N
     await sensitiveApiRateLimiter.consume(key);
     next();
   } catch (error) {
-    console.error('Rate limiting error:', error);
+    logger.error('Rate limiting error:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Internal server error'

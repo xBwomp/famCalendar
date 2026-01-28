@@ -1,10 +1,9 @@
-console.log('Loading backend/src/index.ts');
-
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import path from 'path';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -17,24 +16,27 @@ import seedRoutes from './routes/seedRoutes';
 import authRoutes from './routes/authRoutes';
 import adminRoutes from './routes/adminRoutes';
 import syncRoutes from './routes/syncRoutes';
+import logger from './utils/logger';
 
 const app = express();
 const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
+logger.info('Loading backend/src/index.ts');
+
 // Validate required environment variables
 if (!process.env.SESSION_SECRET) {
-  console.error('❌ FATAL: SESSION_SECRET environment variable is required');
-  console.error('Please set SESSION_SECRET in your .env file to a secure random string');
-  console.error('Example: SESSION_SECRET=your-super-secret-random-string-here');
+  logger.error('❌ FATAL: SESSION_SECRET environment variable is required');
+  logger.error('Please set SESSION_SECRET in your .env file to a secure random string');
+  logger.error('Example: SESSION_SECRET=your-super-secret-random-string-here');
   process.exit(1);
 }
 
 if (!process.env.ENCRYPTION_KEY) {
-  console.error('❌ FATAL: ENCRYPTION_KEY environment variable is required');
-  console.error('This key is used to encrypt sensitive tokens in the database');
-  console.error('Please set ENCRYPTION_KEY in your .env file to a secure random string (minimum 32 characters)');
-  console.error('Example: ENCRYPTION_KEY=your-super-secret-encryption-key-at-least-32-chars');
+  logger.error('❌ FATAL: ENCRYPTION_KEY environment variable is required');
+  logger.error('This key is used to encrypt sensitive tokens in the database');
+  logger.error('Please set ENCRYPTION_KEY in your .env file to a secure random string (minimum 32 characters)');
+  logger.error('Example: ENCRYPTION_KEY=your-super-secret-encryption-key-at-least-32-chars');
   process.exit(1);
 }
 
@@ -43,7 +45,7 @@ const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
   : ['http://localhost:5173', 'http://localhost:3001']; // Default for development
 
-console.log('🔒 CORS allowed origins:', allowedOrigins);
+logger.info(`🔒 CORS allowed origins: ${JSON.stringify(allowedOrigins)}`);
 
 // Middleware
 app.use(cors({
@@ -51,6 +53,25 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Morgan Middleware for HTTP logging
+const morganFormat = ':method :url :status :res[content-length] - :response-time ms';
+
+app.use(
+  morgan(morganFormat, {
+    stream: {
+      write: (message) => {
+        const logObject = {
+          method: message.split(' ')[0],
+          url: message.split(' ')[1],
+          status: message.split(' ')[2],
+          responseTime: message.split(' ')[5],
+        };
+        logger.http(message.trim(), logObject);
+      },
+    },
+  })
+);
 
 // Rate limiting middleware
 import { authRateLimit, apiRateLimit, sensitiveApiRateLimit } from './middleware/rateLimiter';
@@ -71,7 +92,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // API Routes
-console.log('Registering auth routes');
+logger.info('Registering auth routes');
 app.use('/auth', authRateLimit, authRoutes);
 app.use('/api/admin', sensitiveApiRateLimit, adminRoutes);
 app.use('/api/calendars', apiRateLimit, calendarRoutes);
@@ -102,21 +123,21 @@ app.get('*', (req, res) => {
 async function startServer() {
   try {
     await initializeDatabase();
-    console.log('✅ Database initialized successfully');
+    logger.info('✅ Database initialized successfully');
     
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`\uD83D\uDCCA Health check: http://${HOST}:${PORT}/api/health`);
-      console.log(`\uD83D\uDD10 Google OAuth: http://${HOST}:${PORT}/auth/google`);
-      console.log(`\uD83D\uDC64 Auth status: http://${HOST}:${PORT}/auth/status`);
-      console.log(`\uD83D\uDCC5 Calendars API: http://${HOST}:${PORT}/api/calendars`);
-      console.log(`\uD83D\uDCC6 Events API: http://${HOST}:${PORT}/api/events`);
-      console.log(`\uD83C\uDF31 Seed API: http://${HOST}:${PORT}/api/seed`);
-      console.log(`\uD83D\uDD04 Sync API: http://${HOST}:${PORT}/api/sync`);
-      console.log(`⚙️  Admin API: http://${HOST}:${PORT}/api/admin`);
+      logger.info(`🚀 Server running on port ${PORT}`);
+      logger.info(`\uD83D\uDCCA Health check: http://${HOST}:${PORT}/api/health`);
+      logger.info(`\uD83D\uDD10 Google OAuth: http://${HOST}:${PORT}/auth/google`);
+      logger.info(`\uD83D\uDC64 Auth status: http://${HOST}:${PORT}/auth/status`);
+      logger.info(`\uD83D\uDCC5 Calendars API: http://${HOST}:${PORT}/api/calendars`);
+      logger.info(`\uD83D\uDCC6 Events API: http://${HOST}:${PORT}/api/events`);
+      logger.info(`\uD83C\uDF31 Seed API: http://${HOST}:${PORT}/api/seed`);
+      logger.info(`\uD83D\uDD04 Sync API: http://${HOST}:${PORT}/api/sync`);
+      logger.info(`⚙️  Admin API: http://${HOST}:${PORT}/api/admin`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }

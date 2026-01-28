@@ -3,6 +3,7 @@ import { Calendar, RefreshCw, Settings, ChevronLeft, ChevronRight, Clock, MapPin
 import { eventApi, calendarApi, CalendarEvent, Calendar as CalendarType } from '../api';
 
 import { useTheme } from '../context/ThemeContext';
+import ThemeBackground from '../components/ThemeBackground';
 
 const PublicDashboard: React.FC = () => {
   const { theme } = useTheme();
@@ -176,188 +177,194 @@ const PublicDashboard: React.FC = () => {
   }
 
   return (
-    <div className="public-dashboard min-h-screen">
-      {/* Header */}
-      <header className="shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-3 items-center">
-            <div className="flex items-center space-x-3">
-              <Calendar className="w-8 h-8 text-blue-600" />
-              <h1 className="text-3xl font-bold">Family Calendar</h1>
-            </div>
+    <div className="public-dashboard min-h-screen relative overflow-hidden">
+      <ThemeBackground />
+      
+      <div className="relative z-10">
+        {/* Header */}
+        <header className="glass-header sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="grid grid-cols-3 items-center">
+              <div className="flex items-center space-x-3">
+                <Calendar className="w-8 h-8 text-blue-600" />
+                <h1 className="text-3xl font-bold tracking-tight">Family Calendar</h1>
+              </div>
 
-            <div className="text-center">
-              <p className="text-sm">
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </p>
+              <div className="text-center">
+                <p className="text-sm font-medium opacity-80">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+              </div>
+              
+              <div className="flex items-center justify-end space-x-4">
+                <div className="text-right">
+                  <div className="flex items-center space-x-2 mt-1">
+                    <button
+                      onClick={fetchData}
+                      className="inline-flex items-center px-3 py-1 glass-panel rounded-lg text-sm transition-all hover:scale-105 active:scale-95 text-blue-700"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+
+                <a
+                  href="/admin"
+                  className="inline-flex items-center px-3 py-2 glass-panel rounded-lg text-sm transition-all hover:scale-105 active:scale-95 text-gray-700"
+                >
+                  <Settings className="w-4 h-4 mr-1" />
+                  Admin
+                </a>
+              </div>
             </div>
-            
-            <div className="flex items-center justify-end space-x-4">
-              <div className="text-right">
-                <div className="flex items-center space-x-2 mt-1">
-                  <button
-                    onClick={fetchData}
-                    className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Refresh
-                  </button>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {error && (
+            <div className="mb-6 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-xl p-4 shadow-sm">
+              <p className="text-red-800">{error}</p>
+            </div>
+          )}
+
+          {/* Active Calendars */}
+          {calendars.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-4 glass-panel inline-flex px-4 py-2 rounded-2xl">
+                <h2 className="text-lg font-semibold text-gray-800">Active Calendars</h2>
+                <div className="flex flex-wrap gap-2">
+                  {calendars.map((calendar) => (
+                    <div
+                      key={calendar.id}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-transform hover:scale-105"
+                      style={{
+                        backgroundColor: `${calendar.color}30`,
+                        color: calendar.color,
+                        borderColor: calendar.color,
+                        borderWidth: '1px',
+                        boxShadow: `0 2px 4px ${calendar.color}20`
+                      }}
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full mr-2"
+                        style={{ backgroundColor: calendar.color }}
+                      />
+                      {calendar.name}
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              <a
-                href="/admin"
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm transition-colors"
-              >
-                <Settings className="w-4 h-4 mr-1" />
-                Admin
-              </a>
             </div>
-          </div>
-        </div>
-      </header>
+          )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-red-800">{error}</p>
-          </div>
-        )}
 
-        {/* Active Calendars */}
-        {calendars.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-4">
-              <h2 className="text-lg font-semibold">Active Calendars</h2>
-              <div className="flex flex-wrap gap-2">
-                {calendars.map((calendar) => (
-                  <div
-                    key={calendar.id}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                    style={{
-                      backgroundColor: `${calendar.color}20`,
-                      color: calendar.color,
-                      borderColor: calendar.color,
-                      borderWidth: '1px',
-                    }}
-                  >
-                    <div
-                      className="w-2 h-2 rounded-full mr-2"
-                      style={{ backgroundColor: calendar.color }}
-                    />
-                    {calendar.name}
-                  </div>
-                ))}
+          {/* Simple View (always shown) */}
+          <div>
+            <div className="flex items-center justify-between mb-4 glass-panel p-4 rounded-2xl">
+              <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                Events for {formatDate(simpleDate)}
+              </h2>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => navigateSimpleDate('prev')}
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 shadow-sm border border-white/50 text-gray-600 hover:bg-white hover:shadow-md transition-all active:scale-95"
+                  aria-label="Previous day"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <input
+                  type="date"
+                  value={simpleDate}
+                  onChange={(e) => setSimpleDate(e.target.value)}
+                  className="px-4 py-2 border border-white/50 rounded-lg text-sm bg-white/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-400 focus:outline-none shadow-inner"
+                  aria-label="Select date"
+                />
+
+                <button
+                  onClick={() => navigateSimpleDate('next')}
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 shadow-sm border border-white/50 text-gray-600 hover:bg-white hover:shadow-md transition-all active:scale-95"
+                  aria-label="Next day"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={() => setSimpleDate(formatLocalDateISO(new Date()))}
+                  className="ml-2 px-4 py-2 text-sm font-medium border border-white/50 rounded-lg bg-white/80 hover:bg-white shadow-sm hover:shadow-md transition-all active:scale-95 text-blue-600"
+                >
+                  Today
+                </button>
               </div>
             </div>
-          </div>
-        )}
-
-
-        {/* Simple View (always shown) */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">
-              Events for {formatDate(simpleDate)}
-            </h2>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => navigateSimpleDate('prev')}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
-                aria-label="Previous day"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <input
-                type="date"
-                value={simpleDate}
-                onChange={(e) => setSimpleDate(e.target.value)}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                aria-label="Select date"
-              />
-
-              <button
-                onClick={() => navigateSimpleDate('next')}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
-                aria-label="Next day"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => setSimpleDate(formatLocalDateISO(new Date()))}
-                className="ml-2 px-3 py-1 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50"
-              >
-                Today
-              </button>
-            </div>
-          </div>
-          
-          {/* Events List for Simple View */}
-          <div className="space-y-4">
-            {parsedEvents.filter(event => {
-              const eventDate = event.parsedStartTime.toISOString().split('T')[0];
-              return eventDate === simpleDate;
-            }).length > 0 ? (
-              parsedEvents
-                .filter(event => {
-                  const eventDate = event.parsedStartTime.toISOString().split('T')[0];
-                  return eventDate === simpleDate;
-                })
-                .map(event => (
-                  <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-lg">{event.title}</h3>
-                        <div className="flex items-center text-sm text-gray-500 mt-1">
-                          <Clock className="w-4 h-4 mr-2" />
-                          <span>
-                            {event.all_day
-                              ? 'All Day'
-                              : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`}
-                          </span>
-                        </div>
-                        {event.location && (
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            <span>{event.location}</span>
+            
+            {/* Events List for Simple View */}
+            <div className="space-y-4">
+              {parsedEvents.filter(event => {
+                const eventDate = event.parsedStartTime.toISOString().split('T')[0];
+                return eventDate === simpleDate;
+              }).length > 0 ? (
+                parsedEvents
+                  .filter(event => {
+                    const eventDate = event.parsedStartTime.toISOString().split('T')[0];
+                    return eventDate === simpleDate;
+                  })
+                  .map(event => (
+                    <div key={event.id} className="glass-card rounded-2xl p-6 transition-all hover:translate-y-[-2px] hover:shadow-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-xl text-gray-900">{event.title}</h3>
+                          <div className="flex items-center text-sm text-gray-600 mt-2 font-medium">
+                            <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                            <span>
+                              {event.all_day
+                                ? 'All Day'
+                                : `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`}
+                            </span>
                           </div>
-                        )}
+                          {event.location && (
+                            <div className="flex items-center text-sm text-gray-500 mt-1">
+                              <MapPin className="w-4 h-4 mr-2 text-red-400" />
+                              <span>{event.location}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className="w-4 h-4 rounded-full mt-1 ring-4 ring-white/50"
+                          style={{ backgroundColor: calendars.find(c => c.id === event.calendar_id)?.color || '#888' }}
+                          title={calendars.find(c => c.id === event.calendar_id)?.name || 'Unknown Calendar'}
+                        ></div>
                       </div>
-                      <div
-                        className="w-3 h-3 rounded-full mt-1"
-                        style={{ backgroundColor: calendars.find(c => c.id === event.calendar_id)?.color || '#888' }}
-                        title={calendars.find(c => c.id === event.calendar_id)?.name || 'Unknown Calendar'}
-                      ></div>
+                      {event.description && (
+                        <div className="mt-4 pt-4 border-t border-gray-200/50">
+                          <button
+                            onClick={() => toggleDescription(event.id)}
+                            className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center transition-colors"
+                          >
+                            {expandedEvents.includes(event.id) ? 'Hide Details' : 'Show Details'}
+                            {expandedEvents.includes(event.id) ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+                          </button>
+                          {expandedEvents.includes(event.id) && (
+                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap leading-relaxed bg-white/40 p-3 rounded-lg">
+                              {event.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {event.description && (
-                      <div className="mt-3">
-                        <button
-                          onClick={() => toggleDescription(event.id)}
-                          className="text-sm text-blue-600 hover:underline flex items-center"
-                        >
-                          {expandedEvents.includes(event.id) ? 'Hide Details' : 'Show Details'}
-                          {expandedEvents.includes(event.id) ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
-                        </button>
-                        {expandedEvents.includes(event.id) && (
-                          <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
-                            {event.description}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))
-            ) : (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto" />
-                <p className="mt-4 text-gray-600">No events scheduled for this day.</p>
-              </div>
-            )}
+                  ))
+              ) : (
+                <div className="text-center py-12 glass-panel rounded-2xl border-dashed border-2 border-gray-300/50">
+                  <Calendar className="w-16 h-16 text-gray-400/50 mx-auto mb-4" />
+                  <p className="text-xl text-gray-500 font-medium">No events scheduled for this day.</p>
+                  <p className="text-sm text-gray-400 mt-2">Enjoy your free time!</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../../../shared/types';
+import logger from '../utils/logger';
 
 // Validation schemas using Zod
 
@@ -89,7 +90,7 @@ export const validateRequest = (schema: z.ZodSchema) =>
         return res.status(400).json(response);
       }
       
-      console.error('Validation error:', error);
+      logger.error('Validation error:', error);
       const response: ApiResponse = {
         success: false,
         error: 'Internal validation error',
@@ -122,7 +123,7 @@ export const validateQuery = (schema: z.ZodSchema) =>
         return res.status(400).json(response);
       }
       
-      console.error('Query validation error:', error);
+      logger.error('Query validation error:', error);
       const response: ApiResponse = {
         success: false,
         error: 'Internal validation error',

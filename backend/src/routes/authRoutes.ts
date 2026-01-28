@@ -2,12 +2,13 @@ import { Router, Request, Response } from 'express';
 import passport from '../config/passport';
 import { requireAuthAPI } from '../middleware/auth';
 import { ApiResponse } from '../../../shared/types';
+import logger from '../utils/logger';
 
 const router = Router();
 
 // GET /auth/google - Initiate Google OAuth
 router.get('/google', (req, res, next) => {
-  console.log('Request to /auth/google received');
+  logger.info('Request to /auth/google received');
   passport.authenticate('google', { scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar.readonly'] }, (err, user, info) => {
     if (err) {
       return next(err);
@@ -25,7 +26,7 @@ router.get('/google', (req, res, next) => {
 });
 
 // Send console message
-console.log("Initiate Google OAuth");
+logger.info("Initiate Google OAuth");
 
 // GET /auth/google/callback - Handle Google OAuth callback
 router.get('/google/callback', 
@@ -40,7 +41,7 @@ router.get('/google/callback',
 router.post('/logout', (req: Request, res: Response) => {
   req.logout((err) => {
     if (err) {
-      console.error('Logout error:', err);
+      logger.error('Logout error:', err);
       const response: ApiResponse = {
         success: false,
         error: 'Failed to logout'

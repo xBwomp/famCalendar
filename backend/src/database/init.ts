@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
+import logger from '../utils/logger';
 
 const DB_PATH = path.join(__dirname, '../../db/calendar.db');
 
@@ -68,10 +69,10 @@ export async function initializeDatabase(): Promise<void> {
         )
       `, (err) => {
         if (err) {
-          console.error('❌ Database initialization error:', err);
+          logger.error('❌ Database initialization error:', err);
           reject(err);
         } else {
-          console.log('✅ Database tables created/verified');
+          logger.info('✅ Database tables created/verified');
           resolve();
         }
       });
@@ -83,9 +84,9 @@ export async function initializeDatabase(): Promise<void> {
 process.on('SIGINT', () => {
   db.close((err) => {
     if (err) {
-      console.error('❌ Error closing database:', err);
+      logger.error('❌ Error closing database:', err);
     } else {
-      console.log('✅ Database connection closed');
+      logger.info('✅ Database connection closed');
     }
     process.exit(0);
   });

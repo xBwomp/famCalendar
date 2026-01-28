@@ -2,6 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { db } from '../database/init';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
+import logger from '../utils/logger';
 
 // Configure Google OAuth2 strategy
 passport.use(new GoogleStrategy({
@@ -98,7 +99,7 @@ passport.deserializeUser((id: string, done) => {
         refreshToken = decrypt(refreshToken);
       }
     } catch (error) {
-      console.error('Error decrypting tokens:', error);
+      logger.error('Error decrypting tokens:', error);
       return done(new Error('Failed to decrypt authentication tokens'), null);
     }
 

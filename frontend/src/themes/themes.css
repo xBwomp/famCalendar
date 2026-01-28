@@ -4,17 +4,20 @@
 @import url('./newYears.css');
 
 .default-theme {
-  --background-color: #FFFFFF;
-  --background-color-dark: #E2E2E2;
-  --text-color: #000000;
-  --card-text-color: #000000;
-  --primary-color: #007BFF;
-  --secondary-color: #6C757D;
+  --background-color: #F9FAFB; /* Softer white/gray */
+  --background-color-dark: #F3F4F6;
+  --text-color: #1F2937; /* Deep gray instead of pure black */
+  --card-text-color: #374151;
+  --primary-color: #3B82F6;
+  --secondary-color: #9CA3AF;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
 }
 
   .public-dashboard {
-    background: linear-gradient(to bottom right, var(--background-color), var(--background-color-dark));
+    background: linear-gradient(135deg, var(--background-color), var(--background-color-dark));
     color: var(--text-color);
+    min-height: 100vh;
   }
 
 .public-dashboard header {

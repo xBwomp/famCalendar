@@ -3,6 +3,7 @@ import { db } from '../database/init';
 import { Calendar, CalendarEvent } from '../../../shared/types';
 import { encrypt, decrypt, isEncrypted } from '../utils/encryption';
 import { DatabaseError, ApiError } from '../utils/errorHandler';
+import logger from '../utils/logger';
 
 export class GoogleCalendarService {
   private oauth2Client: any;
@@ -30,7 +31,7 @@ export class GoogleCalendarService {
     this.waitForCredentials().then(() => {
       // resolved inside waitForCredentials when setCredentials succeeds
     }).catch(err => {
-      console.error('❌ Error while waiting for Google credentials:', err);
+      logger.error('❌ Error while waiting for Google credentials:', err);
       // reject the ready promise so awaiters know something went wrong
       this._readyReject(err);
     });
@@ -42,7 +43,7 @@ export class GoogleCalendarService {
       const accessTokenRow = await new Promise<any>((resolve, reject) => {
         db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_access_token'], (err, row: any) => {
           if (err) {
-            console.error('❌ Database error fetching access token:', err);
+            logger.error('❌ Database error fetching access token:', err);
             reject(new DatabaseError('Failed to fetch Google access token', err));
           }
           resolve(row);
@@ -50,7 +51,7 @@ export class GoogleCalendarService {
       });
 
       if (!accessTokenRow) {
-        console.error('❌ No Google access token found');
+        logger.error('❌ No Google access token found');
         return false;
       }
 
@@ -58,7 +59,7 @@ export class GoogleCalendarService {
       const refreshTokenRow = await new Promise<any>((resolve, reject) => {
         db.get('SELECT value FROM admin_settings WHERE key = ?', ['google_refresh_token'], (refreshErr, refreshRow: any) => {
           if (refreshErr) {
-            console.error('❌ Database error fetching refresh token:', refreshErr);
+            logger.error('❌ Database error fetching refresh token:', refreshErr);
             reject(new DatabaseError('Failed to fetch Google refresh token', refreshErr));
           }
           resolve(refreshRow);
@@ -96,7 +97,7 @@ export class GoogleCalendarService {
       if (error instanceof DatabaseError) {
         throw error; // Re-throw database errors
       }
-      console.error('❌ Error decrypting tokens:', error);
+      logger.error('❌ Error decrypting tokens:', error);
       return false;
     }
   }
@@ -168,7 +169,7 @@ export class GoogleCalendarService {
         try {
           await checkAndLoad();
         } catch (err) {
-          console.error('❌ Error checking for credentials:', err);
+          logger.error('❌ Error checking for credentials:', err);
           if (this.pollingInterval) {
             clearInterval(this.pollingInterval);
             this.pollingInterval = undefined;
@@ -201,7 +202,7 @@ export class GoogleCalendarService {
           [key, encryptedValue],
           (err) => {
             if (err) {
-              console.error(`❌ Error storing ${key}:`, err);
+              logger.error(`❌ Error storing ${key}:`, err);
               reject(new DatabaseError(`Failed to store ${key}`, err));
             }
             resolve();
@@ -209,7 +210,7 @@ export class GoogleCalendarService {
         );
       });
     } catch (encryptError) {
-      console.error(`❌ Error encrypting ${key}:`, encryptError);
+      logger.error(`❌ Error encrypting ${key}:`, encryptError);
       throw new ApiError(`Failed to encrypt ${key}`, 500, true, encryptError);
     }
   }
@@ -238,7 +239,7 @@ export class GoogleCalendarService {
 
       return calendars;
     } catch (error: any) {
-      console.error('❌ Error fetching calendar list:', error);
+      logger.error('❌ Error fetching calendar list:', error);
       throw new Error(`Failed to fetch calendar list: ${error.message}`);
     }
   }
@@ -279,7 +280,7 @@ export class GoogleCalendarService {
               calendar.id // For the COALESCE to preserve existing selection
             ], function(err) {
               if (err) {
-                console.error('❌ Error syncing calendar:', calendar.name, err);
+                logger.error('❌ Error syncing calendar:', calendar.name, err);
               } else {
                 if (this.changes > 0) {
                   if (isExisting) {
@@ -296,7 +297,7 @@ export class GoogleCalendarService {
             if (err) {
               reject(err);
             } else {
-              console.log(`✅ Synced ${calendars.length} calendars (${imported} new, ${updated} updated)`);
+              logger.info(`✅ Synced ${calendars.length} calendars (${imported} new, ${updated} updated)`);
               resolve({ imported, updated });
             }
           });
@@ -351,7 +352,7 @@ export class GoogleCalendarService {
 
       return events;
     } catch (error: any) {
-      console.error(`❌ Error fetching events for calendar ${calendarId}:`, error);
+      logger.error(`❌ Error fetching events for calendar ${calendarId}:`, error);
       throw new Error(`Failed to fetch events: ${error.message}`);
     }
   }
@@ -405,7 +406,7 @@ export class GoogleCalendarService {
                   event.location
                 ], function(insertErr) {
                   if (insertErr) {
-                    console.error(`❌ Error syncing event ${event.title}:`, insertErr);
+                    logger.error(`❌ Error syncing event ${event.title}:`, insertErr);
                   } else {
                     syncedCount++;
                   }
@@ -416,13 +417,13 @@ export class GoogleCalendarService {
                 if (finalizeErr) {
                   rejectEvents(finalizeErr);
                 } else {
-                  console.log(`✅ Synced ${syncedCount} events for calendar: ${calendar.name}`);
+                  logger.info(`✅ Synced ${syncedCount} events for calendar: ${calendar.name}`);
                   resolveEvents(syncedCount);
                 }
               });
             });
           } catch (error: any) {
-            console.error(`❌ Error syncing calendar ${calendar.name}:`, error);
+            logger.error(`❌ Error syncing calendar ${calendar.name}:`, error);
             errors.push(`Failed to sync calendar "${calendar.name}": ${error.message}`);
             return 0;
           }
@@ -470,7 +471,7 @@ export class GoogleCalendarService {
         userEmail: userInfo.data.email ?? undefined
       };
     } catch (error: any) {
-      console.error('❌ Google Calendar API test failed:', error);
+      logger.error('❌ Google Calendar API test failed:', error);
       return {
         success: false,
         message: `Connection failed: ${error.message}`
